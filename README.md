@@ -1,16 +1,24 @@
 # AgentFlow
 
-AgentFlow is a lightweight AI-agent control center for registering agents, launching workflow runs, and monitoring execution state.
+AgentFlow is a lightweight AI-agent control center for registering agents, launching workflow runs, and executing model-backed agent tasks.
 
-## What is included
+## Current capabilities
 
-- Responsive web dashboard built with Next.js App Router and TypeScript.
-- Agent registry API at `GET /api/agents`.
-- Run control API at `GET/POST /api/runs` with JSON validation.
-- Recent-run and agent status views.
-- One-click run creation from the dashboard.
-- GitHub Actions CI that installs dependencies and verifies a production build.
-- No secrets are committed; environment files are ignored.
+- Responsive Next.js App Router + TypeScript dashboard.
+- Agent registry: Planner, Researcher, Builder, Reviewer.
+- `GET /api/agents` registry endpoint.
+- `GET/POST /api/runs` workflow run control plane.
+- `POST /api/agent` server-side agent execution endpoint.
+- OpenAI Responses API adapter with server-only credentials.
+- Agent Console in the dashboard for submitting goals and displaying model output.
+- Runtime `/api/health` capability check.
+- GitHub Actions CI and no committed secrets.
+
+## Enable live AI
+
+Configure `OPENAI_API_KEY` in the Vercel project environment. Optionally set `OPENAI_MODEL`; the default is `gpt-5.6-luna`. The browser never receives the API key.
+
+The application intentionally reports `configuration_required` when the key is absent instead of pretending a model execution occurred.
 
 ## Run locally
 
@@ -33,12 +41,13 @@ npm start
 ```text
 Browser
   -> Next.js dashboard
-      -> /api/agents  -> agent registry
-      -> /api/runs    -> workflow run control plane
+      -> /api/agent -> server-side OpenAI Responses API
+      -> /api/agents -> agent registry
+      -> /api/runs -> workflow run control plane
 ```
 
-The current MVP deliberately keeps storage in process so the control-plane contract can be validated without coupling the project to a database. The next production layer should replace the in-memory run store with durable persistence and connect the run endpoint to the chosen LLM/tool execution backend.
+The run store is currently in-memory. A production persistence layer (for example Supabase/Postgres), authentication, durable queue/worker execution, tool permissions, memory/RAG, and observability should be added before treating this as a multi-user production platform.
 
 ## Deployment
 
-The app is compatible with standard Next.js hosting, including Vercel. Set production secrets through the hosting provider rather than committing `.env` files.
+The GitHub repository is linked to the Vercel project, so pushes to `main` trigger production deployments. Secrets must be configured in Vercel rather than committed to Git.
