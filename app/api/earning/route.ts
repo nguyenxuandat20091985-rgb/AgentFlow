@@ -4,11 +4,16 @@ import { supabaseAdmin, supabaseAdminConfigured } from "@/lib/supabase-admin";
 export async function GET() {
   if (!supabaseAdminConfigured()) return NextResponse.json({ error: "Supabase is not configured" }, { status: 503 });
   try {
-    const [deals, orders, ledger] = await Promise.all([
+    const [dealsResult, ordersResult, ledgerResult] = await Promise.all([
       supabaseAdmin<Array<Record<string, unknown>>>("commerce_deals?select=*&order=created_at.desc&limit=50"),
       supabaseAdmin<Array<Record<string, unknown>>>("affiliate_orders?select=*&order=created_at.desc&limit=50"),
       supabaseAdmin<Array<{amount:number;currency:string;source:string;recorded_at:string}>>("revenue_ledger?select=amount,currency,source,recorded_at&order=recorded_at.desc&limit=100"),
     ]);
+
+    const deals = dealsResult ?? [];
+    const orders = ordersResult ?? [];
+    const ledger = ledgerResult ?? [];
+
     const total = ledger.reduce((s, r) => s + Number(r.amount || 0), 0);
     const affiliate = orders.reduce((s, r) => s + Number(r.commission || 0), 0);
     return NextResponse.json({ source: "supabase", verticals: [
