@@ -1,0 +1,31 @@
+name: AgentFlow primary agent heartbeat
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  heartbeat:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send SalesBot heartbeat
+        env:
+          APP_URL: ${{ vars.AGENTFLOW_APP_URL }}
+          HEARTBEAT_SECRET: ${{ secrets.AGENT_HEARTBEAT_SECRET }}
+        run: |
+          test -n "$APP_URL" || (echo "Missing AGENTFLOW_APP_URL repository variable" && exit 1)
+          test -n "$HEARTBEAT_SECRET" || (echo "Missing AGENT_HEARTBEAT_SECRET repository secret" && exit 1)
+          curl --fail-with-body -sS -X POST "$APP_URL/api/agents/heartbeat" \
+            -H "content-type: application/json" \
+            -H "x-agent-heartbeat-secret: $HEARTBEAT_SECRET" \
+            --data '{"agentId":"salesbot"}'
+      - name: Send Marketing heartbeat
+        env:
+          APP_URL: ${{ vars.AGENTFLOW_APP_URL }}
+          HEARTBEAT_SECRET: ${{ secrets.AGENT_HEARTBEAT_SECRET }}
+        run: |
+          curl --fail-with-body -sS -X POST "$APP_URL/api/agents/heartbeat" \
+            -H "content-type: application/json" \
+            -H "x-agent-heartbeat-secret: $HEARTBEAT_SECRET" \
+            --data '{"agentId":"marketing"}'
