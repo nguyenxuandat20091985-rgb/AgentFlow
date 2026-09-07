@@ -18,6 +18,7 @@ function verifyPayOSSignature(data: Record<string, unknown>, signature: string, 
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
+// Production health endpoint for PayOS webhook verification.
 export async function GET() {
   return NextResponse.json({ ok: true, service: "AgentFlow PayOS webhook", method: "POST" });
 }
