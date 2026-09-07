@@ -7,17 +7,18 @@ const names = [
   ["QA", "Quality assurance"], ["HR", "People operations"], ["Finance", "Finance analysis"], ["Marketing", "Marketing automation"], ["CustomerService", "Customer service"]
 ] as const;
 
-// Fleet status is exposed separately from revenue. Revenue is never fabricated here.
-// When live heartbeats are connected, this is the single endpoint to replace with persisted status.
-const agents = names.map(([name, role], index) => ({
+// Runtime status must come from a persisted heartbeat when available.
+// Until a heartbeat table/worker is configured, never claim an agent is running.
+const agents = names.map(([name, role]) => ({
   id: name.toLowerCase(),
   name,
   role,
   model: "gpt-5.6-luna",
-  status: index < 12 ? "running" : "stopped"
+  status: "stopped" as const,
+  statusSource: "heartbeat-not-configured",
 }));
 
 export const dynamic = "force-dynamic";
-export function GET(){
-  return NextResponse.json(agents, { headers:{"cache-control":"no-store"} });
+export function GET() {
+  return NextResponse.json(agents, { headers: { "cache-control": "no-store" } });
 }
