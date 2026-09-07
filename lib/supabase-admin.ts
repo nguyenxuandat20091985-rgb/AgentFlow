@@ -5,7 +5,7 @@ export function supabaseAdminConfigured() {
   return Boolean(url && key);
 }
 
-export async function supabaseRest<T>(path: string, init: RequestInit = {}) {
+export async function supabaseAdmin<T = unknown>(path: string, init: RequestInit = {}) {
   if (!url || !key) throw new Error("Supabase server configuration is missing");
   const response = await fetch(`${url}/rest/v1/${path}`, {
     ...init,
