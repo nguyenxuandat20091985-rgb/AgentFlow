@@ -10,7 +10,7 @@ export async function GET() {
     const [dealsResult, ordersResult, ledgerResult, paymentsResult] = await Promise.all([
       supabaseAdmin<Array<Record<string, unknown>>>("commerce_deals?select=*&order=created_at.desc&limit=50"),
       supabaseAdmin<Array<Record<string, unknown>>>("affiliate_orders?select=*&order=created_at.desc&limit=50"),
-      supabaseAdmin<Array<Record<string, unknown>>>("revenue_ledger?select=*&order=recorded_at.desc&limit=100"),
+      supabaseAdmin<Array<Record<string, unknown>>>("revenue_ledger?select=*&order=created_at.desc&limit=100"),
       supabaseAdmin<Array<Record<string, unknown>>>("payment_events?select=id,external_event_id,provider,status,amount,created_at&order=created_at.desc&limit=100"),
     ]);
 
@@ -32,7 +32,7 @@ export async function GET() {
         amount: Number(row.amount || payment?.amount || 0),
         status: String(payment?.status || "success"),
         provider: String(payment?.provider || "payos"),
-        createdAt: String(payment?.created_at || row.recorded_at || row.created_at || ""),
+        createdAt: String(payment?.created_at || row.created_at || ""),
       };
     });
 
