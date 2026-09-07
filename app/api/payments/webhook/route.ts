@@ -65,7 +65,6 @@ export async function POST(request: Request) {
   const success = payload.success === true && String(payload.code || "") === "00" && String(data.code || "") === "00";
   const externalEventId = String(data.reference || data.orderCode || "").trim();
   const amount = Number(data.amount);
-  const currency = String(data.currency || "VND").toUpperCase();
 
   if (!success || !externalEventId || !Number.isFinite(amount) || amount <= 0) {
     return NextResponse.json({ accepted: true, recorded: false, reason: "Payment is not a verified success event" });
@@ -104,9 +103,7 @@ export async function POST(request: Request) {
         external_event_id: externalEventId,
         status: "success",
         amount,
-        currency,
         payload,
-        raw_hash: rawHash,
         created_at: new Date().toISOString(),
       }),
     });
