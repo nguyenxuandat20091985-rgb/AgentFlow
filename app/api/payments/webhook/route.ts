@@ -18,6 +18,10 @@ function verifyPayOSSignature(data: Record<string, unknown>, signature: string, 
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
+export async function GET() {
+  return NextResponse.json({ ok: true, service: "AgentFlow PayOS webhook", method: "POST" });
+}
+
 export async function POST(request: Request) {
   const checksumKey = process.env.PAYOS_CHECKSUM_KEY;
   if (!checksumKey) return NextResponse.json({ error: "PAYOS_CHECKSUM_KEY is not configured" }, { status: 503 });
