@@ -1,9 +1,20 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "AgentFlow",
-  description: "AI agent workflow control center"
+  title: "AgentFlow AI",
+  description: "AI agent workflow control center",
+  applicationName: "AgentFlow AI",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: { capable: true, title: "AgentFlow", statusBarStyle: "default" },
+  icons: { icon: "/icon.svg", apple: "/icon.svg" }
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#111827"
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
