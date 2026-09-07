@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./agentflow-v2.css";
+import "./ceo-chat.css";
 import PwaRegister from "./pwa-register";
 
 export const metadata: Metadata = {
