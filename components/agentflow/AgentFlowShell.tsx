@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 
 type Agent={id:string;name:string;role?:string;status:string;revenue?:number};
 type RevenueRow={id:string;transactionCode:string;amount:number;status:string;provider:string;createdAt:string};
@@ -8,7 +8,7 @@ const ICONS=["↗","◌","⌁","✦","◈","◎","✉","◇","◒","▣","◫","
 const seed=NAMES.map((name,i)=>({id:name.toLowerCase(),name,role:"AI Agent",status:i<12?"running":"stopped",revenue:0}));
 
 type View="overview"|"agents"|"workflows"|"history"|"chat";
-export default function AgentFlowShell({view}:{view:View}){
+export default function AgentFlowShell({view,children}:{view:View;children?:ReactNode}){
  const [agents,setAgents]=useState<Agent[]>(seed),[revenue,setRevenue]=useState(0),[payments,setPayments]=useState(0),[history,setHistory]=useState<RevenueRow[]>([]),[loading,setLoading]=useState(true),[error,setError]=useState("");
  useEffect(()=>{let alive=true;const load=async()=>{try{const [ar,rr]=await Promise.all([fetch("/api/agents",{cache:"no-store"}),fetch("/api/earning",{cache:"no-store"})]);const ad=ar.ok?await ar.json():[];const rd=await rr.json();if(!rr.ok)throw new Error(rd.error||"Không thể tải dữ liệu doanh thu");if(alive){setAgents(Array.isArray(ad)&&ad.length?ad:seed);setRevenue(Number(rd.revenue?.total||0));const ps=Array.isArray(rd.payments)?rd.payments.filter((p:any)=>p.status==="success"):[];setPayments(ps.length);setHistory(Array.isArray(rd.history)?rd.history:[]);setError("")}}catch(e){if(alive)setError(e instanceof Error?e.message:"Không thể tải dữ liệu")}finally{if(alive)setLoading(false)}};load();const t=setInterval(load,10000);return()=>{alive=false;clearInterval(t)}},[]);
  const fleet=useMemo(()=>NAMES.map((name,i)=>({...seed[i],...(agents.find(a=>a.name?.toLowerCase()===name.toLowerCase()||a.id?.toLowerCase()===name.toLowerCase())||{})})),[agents]);
@@ -20,7 +20,7 @@ export default function AgentFlowShell({view}:{view:View}){
  {view==="agents"&&<Agents fleet={fleet} loading={loading} money={money}/>}
  {view==="workflows"&&<Workflows/>}
  {view==="history"&&<History rows={history} loading={loading} money={money}/>} 
- {view==="chat"&&null}
+ {view==="chat"&&children}
  </main><nav className="bottom-nav" aria-label="Điều hướng chính">{nav.map(([href,icon,label])=><a key={href} className={(view==="overview"&&href==="/")||(href.includes(view))?"active":""} href={href}>{icon}<small>{label}</small></a>)}</nav></div>
 }
 function Overview({revenue,running,stopped,payments,loading,money}:{revenue:number;running:number;stopped:number;payments:number;loading:boolean;money:(n:number)=>string}){return <><section className="overview-grid"><div className="panel cash-widget"><div className="eyebrow">DÒNG TIỀN THỰC TẾ</div><h2>{loading?"…":money(revenue)}</h2><span className="live-badge">● Supabase LIVE</span><div className="cash-meta"><div><span>Payments thành công</span><strong>{payments}</strong></div><div><span>AI đang chạy</span><strong>{running}/20</strong></div></div></div><div className="panel system-widget"><div className="panelhead"><strong>Trạng thái hệ thống</strong><span className="live-badge">LIVE</span></div><div className="system-row"><span>Database</span><b>🟢 Connected</b></div><div className="system-row"><span>PayOS</span><b>🟢 Webhook</b></div><div className="system-row"><span>Safety Firewall</span><b>🟢 Active</b></div><div className="status-pills"><span className="status-pill running">🟢 {running} Đang chạy</span><span className="status-pill stopped">🔴 {stopped} Đã dừng</span></div></div></section><section className="overview-quick panel"><div><div className="eyebrow">QUICK CONTROL</div><h2>Trung tâm điều hành</h2><p>Doanh thu, đội ngũ AI và quy trình được tách riêng. AI CEO là nơi duy nhất để anh ra lệnh và phân công Agent.</p></div><div className="quick-actions"><a href="/chat" className="ceo-action">✦ Giao việc cho AI CEO →</a><a href="/agents">Quản lý AI →</a><a href="/workflows">Xem Workflows →</a><a href="/history">Kiểm tra giao dịch →</a></div></section></>}
