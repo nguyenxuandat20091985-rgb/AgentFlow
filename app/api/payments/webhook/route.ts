@@ -2,6 +2,9 @@ import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 function stableValue(value: unknown): string {
   if (value === null || value === undefined || value === "null" || value === "undefined") return "";
   if (Array.isArray(value)) return JSON.stringify(value.map((item) => item && typeof item === "object" ? sortObject(item as Record<string, unknown>) : item));
