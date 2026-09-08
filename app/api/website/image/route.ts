@@ -3,13 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const revalidate = 3600;
 
-const DEFAULT_ALLOWED_HOSTS = [
-  "shopee.vn",
-  "lazada.vn",
-  "accesstrade.vn",
-  "susercontent.com",
-  "alicdn.com",
-];
+const DEFAULT_ALLOWED_HOSTS = ["shopee.vn", "lazada.vn", "accesstrade.vn", "susercontent.com", "alicdn.com"];
 
 function isPrivateHost(hostname: string) {
   const host = hostname.toLowerCase().replace(/^\[|\]$/g, "");
@@ -19,33 +13,35 @@ function isPrivateHost(hostname: string) {
 function isAllowedHost(hostname: string) {
   const host = hostname.toLowerCase();
   const configured = (process.env.WEBSITE_IMAGE_ALLOWED_HOSTS || "").split(",").map((item) => item.trim().toLowerCase()).filter(Boolean);
-  const allowed = [...DEFAULT_ALLOWED_HOSTS, ...configured];
-  return allowed.some((domain) => host === domain || host.endsWith(`.${domain}`));
+  return [...DEFAULT_ALLOWED_HOSTS, ...configured].some((domain) => host === domain || host.endsWith(`.${domain}`));
+}
+
+function safeUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && !url.username && !url.password && !url.port && !isPrivateHost(url.hostname) && isAllowedHost(url.hostname) ? url : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function GET(request: NextRequest) {
   const raw = request.nextUrl.searchParams.get("url");
   if (!raw) return NextResponse.json({ ok: false, error: "missing_url" }, { status: 400 });
 
-  let target: URL;
-  try {
-    target = new URL(raw);
-  } catch {
-    return NextResponse.json({ ok: false, error: "invalid_url" }, { status: 400 });
-  }
-
-  if (target.protocol !== "https:" || target.username || target.password || target.port || isPrivateHost(target.hostname) || !isAllowedHost(target.hostname)) {
-    return NextResponse.json({ ok: false, error: "blocked_url" }, { status: 400 });
-  }
+  const target = safeUrl(raw);
+  if (!target) return NextResponse.json({ ok: false, error: "blocked_url" }, { status: 400 });
 
   try {
     const response = await fetch(target.toString(), {
       headers: { Accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8" },
-      redirect: "error",
+      redirect: "follow",
       signal: AbortSignal.timeout(8000),
       cache: "force-cache",
     });
 
+    const finalUrl = safeUrl(response.url);
+    if (!finalUrl) return NextResponse.json({ ok: false, error: "blocked_redirect" }, { status: 502 });
     if (!response.ok) return NextResponse.json({ ok: false, error: "upstream_image_failed", status: response.status }, { status: 502 });
 
     const contentType = response.headers.get("content-type") || "image/jpeg";
