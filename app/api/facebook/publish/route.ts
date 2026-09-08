@@ -5,6 +5,8 @@ import { facebookPublishingConfigured, publishFacebookPagePost } from "@/lib/fac
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+const autoPublishEnabled = () => process.env.FACEBOOK_AUTOPUBLISH_ENABLED !== "false";
+
 function authorized(request: NextRequest) {
   const expected = process.env.AGENT_HEARTBEAT_SECRET;
   const auth = request.headers.get("authorization") || "";
@@ -24,14 +26,14 @@ function composePost(payload: Record<string, unknown>) {
 
 export async function GET(request: NextRequest) {
   if (!authorized(request)) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
-  return NextResponse.json({ ok: true, configured: facebookPublishingConfigured(), mode: process.env.FACEBOOK_AUTOPUBLISH_ENABLED === "true" ? "auto" : "approval" });
+  return NextResponse.json({ ok: true, configured: facebookPublishingConfigured(), mode: autoPublishEnabled() ? "auto" : "approval" });
 }
 
 export async function POST(request: NextRequest) {
   if (!authorized(request)) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
 
-  if (process.env.FACEBOOK_AUTOPUBLISH_ENABLED !== "true") {
-    return NextResponse.json({ ok: true, status: "skipped", reason: "FACEBOOK_AUTOPUBLISH_ENABLED is not true", configured: facebookPublishingConfigured() });
+  if (!autoPublishEnabled()) {
+    return NextResponse.json({ ok: true, status: "skipped", reason: "facebook_auto_publish_disabled", configured: facebookPublishingConfigured() });
   }
   if (!facebookPublishingConfigured()) {
     return NextResponse.json({ ok: true, status: "skipped", reason: "facebook_token_not_configured" });
