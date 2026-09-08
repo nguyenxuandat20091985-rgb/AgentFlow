@@ -1,6 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { fetchAccessTradeDatafeeds, rankAffiliateOpportunities, type AccessTradeFeedItem } from "@/lib/accesstrade";
+import { fetchAccessTradeDatafeeds, rankAffiliateOpportunities } from "@/lib/accesstrade";
 
 type DealRow = {
   id?: string | number | null;
@@ -13,6 +13,8 @@ type DealRow = {
   category?: string | null;
 };
 
+export type WebsiteNetwork = "shopee" | "lazada" | "other";
+
 export type WebsiteProduct = {
   id: string;
   title: string;
@@ -22,8 +24,16 @@ export type WebsiteProduct = {
   url: string | null;
   category: string;
   source: "accesstrade" | "deal";
+  network: WebsiteNetwork;
   score: number;
 };
+
+function detectNetwork(value: string | null | undefined): WebsiteNetwork {
+  const text = String(value || "").toLowerCase();
+  if (text.includes("shopee")) return "shopee";
+  if (text.includes("lazada")) return "lazada";
+  return "other";
+}
 
 async function loadCatalog(): Promise<WebsiteProduct[]> {
   const products: WebsiteProduct[] = [];
@@ -31,6 +41,7 @@ async function loadCatalog(): Promise<WebsiteProduct[]> {
   try {
     const feed = rankAffiliateOpportunities(await fetchAccessTradeDatafeeds({ limit: 80 }));
     for (const item of feed.slice(0, 48)) {
+      const destination = item.domain || item.url || item.aff_link;
       products.push({
         id: `at-${String(item.product_id ?? item.sku ?? Math.random())}`,
         title: item.name?.trim() || "Sản phẩm đang có ưu đãi",
@@ -40,6 +51,7 @@ async function loadCatalog(): Promise<WebsiteProduct[]> {
         url: item.aff_link || item.url || null,
         category: item.category || "Ưu đãi nổi bật",
         source: "accesstrade",
+        network: detectNetwork(destination),
         score: Number(item.opportunity_score ?? 0),
       });
     }
@@ -48,8 +60,6 @@ async function loadCatalog(): Promise<WebsiteProduct[]> {
   }
 
   try {
-    // supabaseAdmin() returns null for an empty REST response, so normalize it
-    // before filtering to keep the build/runtime type-safe.
     const deals = (await supabaseAdmin<DealRow[]>(
       "commerce_deals?select=id,deal_title,revenue,status,created_at,url,image,category&order=created_at.desc&limit=24"
     )) ?? [];
@@ -64,6 +74,7 @@ async function loadCatalog(): Promise<WebsiteProduct[]> {
         url: deal.url || null,
         category: deal.category || "Deal mới",
         source: "deal",
+        network: detectNetwork(deal.url),
         score: 10,
       });
     }
@@ -71,10 +82,7 @@ async function loadCatalog(): Promise<WebsiteProduct[]> {
     console.error("[website-catalog] commerce_deals unavailable", error);
   }
 
-  return products
-    .filter((item) => item.url)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 60);
+  return products.filter((item) => item.url).sort((a, b) => b.score - a.score).slice(0, 60);
 }
 
 export const getWebsiteCatalog = unstable_cache(loadCatalog, ["agentflow-website-catalog"], {
