@@ -48,9 +48,12 @@ async function loadCatalog(): Promise<WebsiteProduct[]> {
   }
 
   try {
-    const deals = await supabaseAdmin<DealRow[]>(
+    // supabaseAdmin() returns null for an empty REST response, so normalize it
+    // before filtering to keep the build/runtime type-safe.
+    const deals = (await supabaseAdmin<DealRow[]>(
       "commerce_deals?select=id,deal_title,revenue,status,created_at,url,image,category&order=created_at.desc&limit=24"
-    );
+    )) ?? [];
+
     for (const deal of deals.filter((item) => String(item.status || "").toLowerCase() !== "closed")) {
       products.push({
         id: `deal-${String(deal.id ?? Math.random())}`,
