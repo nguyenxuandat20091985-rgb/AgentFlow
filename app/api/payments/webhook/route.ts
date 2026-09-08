@@ -1,4 +1,4 @@
-import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
@@ -40,6 +40,20 @@ function verifyPayOSSignature(data: Record<string, unknown>, signature: string, 
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
+function resolveAgentId(payload: Record<string, unknown>, data: Record<string, unknown>): "salesbot" | "marketing" | null {
+  const metadata = data.metadata && typeof data.metadata === "object" ? data.metadata as Record<string, unknown> : null;
+  const candidates = [
+    payload.agentId,
+    data.agentId,
+    payload.agent_id,
+    data.agent_id,
+    metadata?.agentId,
+    metadata?.agent_id,
+  ];
+  const value = candidates.map((v) => String(v ?? "").trim().toLowerCase()).find(Boolean);
+  return value === "salesbot" || value === "marketing" ? value : null;
+}
+
 export async function GET() {
   return NextResponse.json({ ok: true, service: "AgentFlow PayOS webhook", method: "POST" });
 }
@@ -65,12 +79,12 @@ export async function POST(request: Request) {
   const success = payload.success === true && String(payload.code || "") === "00" && String(data.code || "") === "00";
   const externalEventId = String(data.reference || data.orderCode || "").trim();
   const amount = Number(data.amount);
+  const agentId = resolveAgentId(payload, data);
 
   if (!success || !externalEventId || !Number.isFinite(amount) || amount <= 0) {
     return NextResponse.json({ accepted: true, recorded: false, reason: "Payment is not a verified success event" });
   }
 
-  const rawHash = createHash("sha256").update(raw).digest("hex");
   const query = "provider=eq.payos&external_event_id=eq." + encodeURIComponent(externalEventId) + "&select=id,external_event_id&limit=1";
 
   let existing: Array<{ id: string }> | null = null;
@@ -83,14 +97,14 @@ export async function POST(request: Request) {
 
   if (existing?.length) {
     const paymentEventId = existing[0].id;
-    let ledgerExists: Array<{ id: string }> | null = null;
+    let ledgerExists: Array<{ id: string; agent_id?: string | null }> | null = null;
     try {
-      ledgerExists = await supabaseAdmin<Array<{ id: string }>>(`revenue_ledger?event_id=eq.${encodeURIComponent(paymentEventId)}&select=id&limit=1`);
+      ledgerExists = await supabaseAdmin<Array<{ id: string; agent_id?: string | null }>>(`revenue_ledger?event_id=eq.${encodeURIComponent(paymentEventId)}&select=id,agent_id&limit=1`);
     } catch (error) {
       logDbError("revenue_ledger duplicate lookup", error);
       return NextResponse.json({ error: "Ledger lookup failed", payment_event_id: paymentEventId }, { status: 503 });
     }
-    return NextResponse.json({ accepted: true, duplicate: true, recorded: Boolean(ledgerExists?.length), payment_event_id: paymentEventId, ledger_id: ledgerExists?.[0]?.id });
+    return NextResponse.json({ accepted: true, duplicate: true, recorded: Boolean(ledgerExists?.length), payment_event_id: paymentEventId, ledger_id: ledgerExists?.[0]?.id, agent_id: ledgerExists?.[0]?.agent_id ?? agentId });
   }
 
   let paymentEvent: { id: string } | undefined;
@@ -126,9 +140,9 @@ export async function POST(request: Request) {
   }
 
   try {
-    const existingLedger = await supabaseAdmin<Array<{ id: string }>>(`revenue_ledger?event_id=eq.${encodeURIComponent(paymentEvent.id)}&select=id&limit=1`);
+    const existingLedger = await supabaseAdmin<Array<{ id: string; agent_id?: string | null }>>(`revenue_ledger?event_id=eq.${encodeURIComponent(paymentEvent.id)}&select=id,agent_id&limit=1`);
     if (existingLedger?.length) {
-      return NextResponse.json({ accepted: true, duplicate: true, recorded: true, payment_event_id: paymentEvent.id, ledger_id: existingLedger[0].id });
+      return NextResponse.json({ accepted: true, duplicate: true, recorded: true, payment_event_id: paymentEvent.id, ledger_id: existingLedger[0].id, agent_id: existingLedger[0].agent_id ?? agentId });
     }
   } catch (error) {
     logDbError("revenue_ledger pre-insert lookup", error);
@@ -139,9 +153,9 @@ export async function POST(request: Request) {
     const ledger = await supabaseAdmin<Array<{ id: string }>>("revenue_ledger", {
       method: "POST",
       headers: { Prefer: "return=representation" },
-      body: JSON.stringify({ event_id: paymentEvent.id, amount }),
+      body: JSON.stringify({ event_id: paymentEvent.id, amount, ...(agentId ? { agent_id: agentId } : {}) }),
     });
-    return NextResponse.json({ accepted: true, duplicate: false, recorded: true, payment_event_id: paymentEvent.id, ledger_id: ledger?.[0]?.id });
+    return NextResponse.json({ accepted: true, duplicate: false, recorded: true, payment_event_id: paymentEvent.id, ledger_id: ledger?.[0]?.id, agent_id: agentId });
   } catch (error) {
     logDbError("revenue_ledger insert", error);
     return NextResponse.json({ error: "Payment event persisted; ledger write failed and can be retried safely", payment_event_id: paymentEvent.id }, { status: 500 });
