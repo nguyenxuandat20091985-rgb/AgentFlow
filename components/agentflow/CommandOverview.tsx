@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import styles from "./CommandOverview.module.css";
 
-type Agent = { id: string; name: string; status: string };
+type Agent = { id: string; name: string; status: string; runtimeEnabled?: boolean; currentTask?: string };
 type Payment = { status?: string };
 type Earning = { payments?: Payment[] };
 type KPI = { agentId: string; name: string; target: number; actual: number; remaining: number; progress: number; transactions: number };
@@ -28,11 +28,11 @@ export default function CommandOverview() {
           fetch("/api/earning", { cache: "no-store" }),
           fetch("/api/agents/kpi", { cache: "no-store" }),
         ]);
-        const ad = a.ok ? await a.json() : [];
+        const ad = a.ok ? await a.json() : {};
         const ed: Earning = e.ok ? await e.json() : {};
         const kd = k.ok ? await k.json() : {};
         if (alive) {
-          setAgents(Array.isArray(ad) ? ad : []);
+          setAgents(Array.isArray(ad) ? ad : Array.isArray(ad.agents) ? ad.agents : []);
           setPayments(Array.isArray(ed.payments) ? ed.payments : []);
           setKpis(Array.isArray(kd.kpis) ? kd.kpis : []);
           setConnected(a.ok && e.ok && k.ok);
@@ -40,7 +40,7 @@ export default function CommandOverview() {
           setKpiLoading(false);
         }
       } catch {
-        if (alive) { setConnected(false); setLoading(false); setKpiLoading(false); }
+        if (alive) { setConnected(false); setAgents([]); setLoading(false); setKpiLoading(false); }
       }
     };
     load();
@@ -48,8 +48,8 @@ export default function CommandOverview() {
     return () => { alive = false; window.clearInterval(timer); };
   }, []);
 
-  const running = agents.filter(a => a.status === "running" || a.status === "ready").length;
-  const stopped = agents.length ? agents.length - running : 20 - running;
+  const running = agents.filter(a => a.status === "running" && a.runtimeEnabled !== false).length;
+  const stopped = agents.length ? agents.length - running : 20;
   const total = agents.length || 20;
   const percent = loading ? 0 : Math.round((running / total) * 100);
   const success = payments.filter(p => String(p.status).toLowerCase() === "success").length;
