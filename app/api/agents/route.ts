@@ -63,5 +63,5 @@ export async function GET() {
     };
   });
 
-  return NextResponse.json({ agents, isolation: { productionRuntime: ["salesbot", "marketing"], developmentAgents: names.filter(([, , enabled]) => !enabled).map(([name]) => name.toLowerCase()), policy: "Only explicitly runtime-enabled agents may execute production runtime. The remaining agents are development-only until individually activated." } }, { headers: { "cache-control": "no-store" } });
+  return NextResponse.json(agents, { headers: { "cache-control": "no-store" } });
 }
