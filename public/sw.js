@@ -1,4 +1,4 @@
-const CACHE_NAME = "nhabep-store-v2";
+const CACHE_NAME = "nhabep-store-v3";
 const APP_SHELL = ["/website", "/manifest.webmanifest", "/icon.svg"];
 
 self.addEventListener("install", (event) => {
