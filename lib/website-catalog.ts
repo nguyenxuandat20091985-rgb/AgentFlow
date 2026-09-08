@@ -8,9 +8,6 @@ type DealRow = {
   revenue?: number | string | null;
   status?: string | null;
   created_at?: string | null;
-  url?: string | null;
-  image?: string | null;
-  category?: string | null;
 };
 
 export type WebsiteNetwork = "shopee" | "lazada" | "other";
@@ -43,7 +40,7 @@ async function loadCatalog(): Promise<WebsiteProduct[]> {
     for (const item of feed.slice(0, 48)) {
       const destination = item.domain || item.url || item.aff_link;
       products.push({
-        id: `at-${String(item.product_id ?? item.sku ?? Math.random())}`,
+        id: `at-${String(item.product_id ?? item.sku ?? "unknown")}`,
         title: item.name?.trim() || "Sản phẩm đang có ưu đãi",
         price: Number(item.price ?? 0) || null,
         discountRate: Number(item.discount_rate ?? 0) || 0,
@@ -60,23 +57,16 @@ async function loadCatalog(): Promise<WebsiteProduct[]> {
   }
 
   try {
+    // Keep this query aligned with the live commerce_deals schema.
     const deals = (await supabaseAdmin<DealRow[]>(
-      "commerce_deals?select=id,deal_title,revenue,status,created_at,url,image,category&order=created_at.desc&limit=24"
+      "commerce_deals?select=id,deal_title,revenue,status,created_at&order=created_at.desc&limit=24"
     )) ?? [];
 
+    // commerce_deals currently has no URL/image columns, so it is not promoted to a clickable
+    // storefront product until a canonical destination exists.
     for (const deal of deals.filter((item) => String(item.status || "").toLowerCase() !== "closed")) {
-      products.push({
-        id: `deal-${String(deal.id ?? Math.random())}`,
-        title: deal.deal_title?.trim() || "Cơ hội mua sắm nổi bật",
-        price: Number(deal.revenue ?? 0) || null,
-        discountRate: 0,
-        image: deal.image || null,
-        url: deal.url || null,
-        category: deal.category || "Deal mới",
-        source: "deal",
-        network: detectNetwork(deal.url),
-        score: 10,
-      });
+      if (!deal.id || !deal.deal_title) continue;
+      console.info("[website-catalog] deal available without destination", { id: deal.id });
     }
   } catch (error) {
     console.error("[website-catalog] commerce_deals unavailable", error);
