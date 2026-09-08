@@ -1,6 +1,8 @@
 name: AI3 Binance Zero-Capital Scout
 
 on:
+  schedule:
+    - cron: "17 */6 * * *"
   pull_request:
     paths:
       - 'app/api/agents/binance-scout/**'
@@ -20,7 +22,7 @@ jobs:
       - run: npm run build
 
   runtime-check:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
     needs: build
     steps:
@@ -29,8 +31,9 @@ jobs:
           BASE_URL: https://agentflow-khaki-rho.vercel.app
           AGENT_HEARTBEAT_SECRET: ${{ secrets.AGENT_HEARTBEAT_SECRET }}
         run: |
+          set -euo pipefail
           test -n "$AGENT_HEARTBEAT_SECRET"
-          curl --fail-with-body --silent --show-error \
+          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 2 --connect-timeout 10 --max-time 60 \
             -X POST "$BASE_URL/api/agents/binance-scout" \
             -H "x-agent-heartbeat-secret: $AGENT_HEARTBEAT_SECRET" \
             -H "content-type: application/json" \
