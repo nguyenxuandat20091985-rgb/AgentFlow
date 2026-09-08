@@ -25,10 +25,7 @@ export default function StorefrontClient({ products }: Props) {
 
   const visibleProducts = useMemo(() => {
     const q = query.trim().toLowerCase();
-    let list = products.filter((item) => {
-      if (!q) return true;
-      return `${item.title} ${item.category} ${item.source}`.toLowerCase().includes(q);
-    });
+    let list = products.filter((item) => !q || `${item.title} ${item.category} ${item.source}`.toLowerCase().includes(q));
     if (filter === "discount") list = list.filter((item) => item.discountRate > 0);
     if (filter === "price") list = [...list].sort((a, b) => (a.price ?? Infinity) - (b.price ?? Infinity));
     return list;
@@ -36,7 +33,7 @@ export default function StorefrontClient({ products }: Props) {
 
   async function installApp() {
     if (!installEvent) {
-      alert("Trên iPhone: mở menu Chia sẻ của Safari → Thêm vào Màn hình chính. Trên Android, hãy mở bằng Chrome để cài ứng dụng.");
+      alert("Trên iPhone: Safari → Chia sẻ → Thêm vào Màn hình chính. Trên Android: mở bằng Chrome rồi chọn Cài ứng dụng.");
       return;
     }
     await installEvent.prompt();
@@ -48,7 +45,7 @@ export default function StorefrontClient({ products }: Props) {
   }
 
   return (
-    <>
+    <div className={styles.page}>
       <header className={styles.appHeader}>
         <div className={styles.appHeaderInner}>
           <a href="/website" className={styles.brand} aria-label="Nhà Bếp Thông Minh - Trang chủ">
@@ -80,11 +77,11 @@ export default function StorefrontClient({ products }: Props) {
             {query && <button onClick={() => setQuery("")} aria-label="Xóa tìm kiếm">×</button>}
           </div>
           <div className={styles.quickChips}>
-            <button className={filter === "all" ? styles.chipActive : styles.chip} onClick={() => setFilter("all")}>Tất cả</button>
-            <button className={styles.chip} onClick={() => setQuery("nồi")}>🍳 Nồi & chảo</button>
-            <button className={styles.chip} onClick={() => setQuery("máy")}>⚡ Điện gia dụng</button>
-            <button className={filter === "discount" ? styles.chipActive : styles.chip} onClick={() => setFilter("discount")}>🔥 Đang giảm</button>
-            <button className={filter === "price" ? styles.chipActive : styles.chip} onClick={() => setFilter("price")}>Giá tốt</button>
+            <button className={filter === "all" ? styles.chipActive : styles.chip} onClick={() => { setFilter("all"); setQuery(""); }}>Tất cả</button>
+            <button className={styles.chip} onClick={() => { setFilter("all"); setQuery("nồi"); }}>🍳 Nồi & chảo</button>
+            <button className={styles.chip} onClick={() => { setFilter("all"); setQuery("máy"); }}>⚡ Điện gia dụng</button>
+            <button className={filter === "discount" ? styles.chipActive : styles.chip} onClick={() => { setFilter("discount"); setQuery(""); }}>🔥 Đang giảm</button>
+            <button className={filter === "price" ? styles.chipActive : styles.chip} onClick={() => { setFilter("price"); setQuery(""); }}>Giá tốt</button>
           </div>
         </section>
 
@@ -93,7 +90,6 @@ export default function StorefrontClient({ products }: Props) {
             <div><span>AI CURATED</span><h2>Deal hôm nay</h2></div>
             <small>{visibleProducts.length} sản phẩm</small>
           </div>
-
           {visibleProducts.length === 0 ? (
             <div className={styles.emptyShop}><div>⌕</div><h3>Chưa tìm thấy sản phẩm</h3><p>Thử từ khóa khác hoặc xem toàn bộ deal đang có.</p><button onClick={() => { setQuery(""); setFilter("all"); }}>Xem tất cả</button></div>
           ) : (
@@ -109,10 +105,7 @@ export default function StorefrontClient({ products }: Props) {
                     <div className={styles.productInfo}>
                       <div className={styles.productCategory}>{product.category || "Đồ gia dụng"}</div>
                       <h3>{product.title}</h3>
-                      <div className={styles.productBottom}>
-                        <strong>{product.price ? `${money.format(product.price)} ₫` : "Xem giá"}</strong>
-                        <span>→</span>
-                      </div>
+                      <div className={styles.productBottom}><strong>{product.price ? `${money.format(product.price)} ₫` : "Xem giá"}</strong><span>→</span></div>
                     </div>
                   </a>
                   <button className={styles.saveButton} onClick={() => toggleSaved(product.id)} aria-label={saved.includes(product.id) ? "Bỏ lưu sản phẩm" : "Lưu sản phẩm"}>{saved.includes(product.id) ? "♥" : "♡"}</button>
@@ -132,9 +125,9 @@ export default function StorefrontClient({ products }: Props) {
       <nav className={styles.bottomNav} aria-label="Điều hướng cửa hàng">
         <a className={styles.bottomActive} href="/website"><span>⌂</span>Trang chủ</a>
         <a href="#products"><span>◈</span>Deal</a>
-        <button onClick={() => setSaved.length && document.getElementById("products")?.scrollIntoView({ behavior: "smooth" })}><span>♡</span>Đã lưu</button>
+        <button onClick={() => document.getElementById("products")?.scrollIntoView({ behavior: "smooth" })}><span>♡</span>Đã lưu</button>
         <button onClick={installApp}><span>▣</span>Cài app</button>
       </nav>
-    </>
+    </div>
   );
 }
