@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    revalidateTag("website-catalog");
+    revalidateTag("website-catalog", "max");
     const catalog = await getWebsiteCatalog();
     return NextResponse.json({ ok: true, refreshedAt: new Date().toISOString(), count: catalog.length });
   } catch (error) {
