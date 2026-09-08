@@ -2,30 +2,62 @@ name: AgentFlow primary agent heartbeat
 
 on:
   schedule:
+    # GitHub Actions schedule is best-effort; 5 minutes is within the supported cadence.
     - cron: "*/5 * * * *"
   workflow_dispatch:
+
+permissions: {}
 
 jobs:
   heartbeat:
     runs-on: ubuntu-latest
+    timeout-minutes: 2
+    env:
+      APP_URL: ${{ vars.AGENTFLOW_APP_URL }}
+      HEARTBEAT_SECRET: ${{ secrets.AGENT_HEARTBEAT_SECRET }}
+
     steps:
+      - name: Validate configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${APP_URL:-}" ]]; then
+            echo "ERROR: Repository variable AGENTFLOW_APP_URL is missing."
+            exit 1
+          fi
+          if [[ -z "${HEARTBEAT_SECRET:-}" ]]; then
+            echo "ERROR: Repository secret AGENT_HEARTBEAT_SECRET is missing."
+            exit 1
+          fi
+          APP_URL="${APP_URL%/}"
+          if [[ ! "$APP_URL" =~ ^https://[^[:space:]]+$ ]]; then
+            echo "ERROR: AGENTFLOW_APP_URL must be an https:// URL."
+            exit 1
+          fi
+          echo "APP_URL configured: ${APP_URL}"
+
       - name: Send SalesBot heartbeat
-        env:
-          APP_URL: ${{ vars.AGENTFLOW_APP_URL }}
-          HEARTBEAT_SECRET: ${{ vars.AGENT_HEARTBEAT_SECRET }}
+        shell: bash
         run: |
-          test -n "$APP_URL" || (echo "Missing AGENTFLOW_APP_URL repository variable" && exit 1)
-          test -n "$HEARTBEAT_SECRET" || (echo "Missing AGENT_HEARTBEAT_SECRET repository variable" && exit 1)
-          curl --fail-with-body -sS -X POST "$APP_URL/api/agents/heartbeat" \
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 2 \
+            --connect-timeout 10 --max-time 30 \
+            -X POST "${APP_URL%/}/api/agents/heartbeat" \
             -H "content-type: application/json" \
-            -H "x-agent-heartbeat-secret: $HEARTBEAT_SECRET" \
+            -H "x-agent-heartbeat-secret: ${HEARTBEAT_SECRET}" \
             --data '{"agentId":"salesbot"}'
+          echo
+          echo "SalesBot heartbeat accepted."
+
       - name: Send Marketing heartbeat
-        env:
-          APP_URL: ${{ vars.AGENTFLOW_APP_URL }}
-          HEARTBEAT_SECRET: ${{ vars.AGENT_HEARTBEAT_SECRET }}
+        shell: bash
         run: |
-          curl --fail-with-body -sS -X POST "$APP_URL/api/agents/heartbeat" \
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 2 \
+            --connect-timeout 10 --max-time 30 \
+            -X POST "${APP_URL%/}/api/agents/heartbeat" \
             -H "content-type: application/json" \
-            -H "x-agent-heartbeat-secret: $HEARTBEAT_SECRET" \
+            -H "x-agent-heartbeat-secret: ${HEARTBEAT_SECRET}" \
             --data '{"agentId":"marketing"}'
+          echo
+          echo "Marketing heartbeat accepted."
