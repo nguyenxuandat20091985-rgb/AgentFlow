@@ -2,7 +2,7 @@
 
 import { ReactNode, useEffect, useMemo, useState } from "react";
 
-type Agent = { id: string; name: string; role?: string; status: string; revenue?: number };
+type Agent = { id: string; name: string; legacyName?: string; role?: string; status: string; runtimeEnabled?: boolean; revenue?: number };
 type Payment = { id: string; external_event_id?: string; provider?: string; status?: string; amount?: number; created_at?: string };
 type LedgerRow = { id?: string; event_id?: string; amount?: number; agent_id?: string; created_at?: string };
 type View = "overview" | "agents" | "workflows" | "history" | "chat";
@@ -15,7 +15,8 @@ const NAMES = [
 ];
 
 const ICONS = ["↗", "◌", "⌁", "✦", "◈", "◎", "✉", "◇", "◒", "▣", "◫", "▤", "⌕", "✎", "⌘", "✓", "♙", "◐", "◆", "◉"];
-const seed: Agent[] = NAMES.map((name, index) => ({ id: name.toLowerCase(), name, role: "AI Agent", status: index < 12 ? "running" : "stopped", revenue: 0 }));
+// Never seed production as online. Live state must come from /api/agents + heartbeat.
+const seed: Agent[] = NAMES.map((name) => ({ id: name.toLowerCase(), name, role: "AI Agent", status: "stopped", runtimeEnabled: false, revenue: 0 }));
 
 export default function AgentFlowShell({ view, children }: { view: View; children?: ReactNode }) {
   const [agents, setAgents] = useState<Agent[]>(seed);
@@ -38,7 +39,7 @@ export default function AgentFlowShell({ view, children }: { view: View; childre
         const earningData = await earningResponse.json();
         if (!earningResponse.ok) throw new Error(earningData.error || "Không thể tải dữ liệu doanh thu");
         if (alive) {
-          setAgents(Array.isArray(agentData) && agentData.length ? agentData : seed);
+          setAgents(Array.isArray(agentData) ? agentData : Array.isArray(agentData.agents) ? agentData.agents : []);
           setRevenue(Number(earningData.revenue?.total || 0));
           setPayments(Array.isArray(earningData.payments) ? earningData.payments : []);
           setLedger(Array.isArray(earningData.ledger) ? earningData.ledger : []);
@@ -67,18 +68,16 @@ export default function AgentFlowShell({ view, children }: { view: View; childre
   }, [ledger]);
 
   const fleet = useMemo(() => NAMES.map((name, index) => {
-    const live = agents.find((agent) => agent.name?.toLowerCase() === name.toLowerCase() || agent.id?.toLowerCase() === name.toLowerCase());
+    const live = agents.find((agent) => agent.name?.toLowerCase() === name.toLowerCase() || agent.id?.toLowerCase() === name.toLowerCase() || agent.legacyName?.toLowerCase() === name.toLowerCase());
     const revenueForAgent = revenueByAgent.get(name.toLowerCase()) ?? revenueByAgent.get(live?.id?.toLowerCase() || "") ?? 0;
     return { ...seed[index], ...(live || {}), revenue: Number(live?.revenue ?? revenueForAgent) };
   }), [agents, revenueByAgent]);
 
-  const running = fleet.filter((agent) => agent.status === "running" || agent.status === "ready").length;
+  const running = fleet.filter((agent) => agent.status === "running" && agent.runtimeEnabled !== false).length;
   const stopped = fleet.length - running;
   const successfulPayments = payments.filter((payment) => String(payment.status).toLowerCase() === "success");
   const money = (value: number) => `${Number(value || 0).toLocaleString("vi-VN")} ₫`;
 
-  // Bottom navigation is intentionally limited to the four core product areas.
-  // AI CEO remains accessible from the Overview control center, but is not a fifth tab.
   const nav = [
     ["/", "⌂", "Tổng quan"],
     ["/agents", "◈", "AI Agents"],
@@ -157,7 +156,7 @@ function Overview({ running, stopped, successfulPayments, loading }: { running: 
 }
 
 function Agents({ fleet, loading, money }: { fleet: Agent[]; loading: boolean; money: (value: number) => string }) {
-  return <section className="af-page-section"><div className="af-section-head"><div><div className="af-kicker">AUTONOMOUS FLEET</div><h2>20 AI Agents</h2><p>Mỗi Agent có trạng thái và doanh thu riêng, tự cập nhật mỗi 10 giây.</p></div><span className="af-info-pill">20 / 20 Agents</span></div><div className="af-agent-grid">{loading ? NAMES.map((name) => <div className="af-agent-skeleton" key={name} />) : fleet.map((agent, index) => { const on = agent.status === "running" || agent.status === "ready"; return <article className={`af-agent-card ${on ? "is-on" : "is-off"}`} key={agent.id} tabIndex={0} aria-label={`${agent.name}: ${on ? "Đang chạy" : "Đã dừng"}`}><div className="af-agent-top"><span className="af-agent-icon">{ICONS[index]}</span><span className={`af-status-dot ${on ? "on" : "off"}`} /></div><strong>{agent.name}</strong><span className="af-agent-role">{agent.role || "AI Agent"}</span><div className="af-agent-status">{on ? "Đang chạy" : "Đã dừng"}</div><div className="af-agent-revenue">+{money(Number(agent.revenue || 0))}</div></article>; })}</div></section>;
+  return <section className="af-page-section"><div className="af-section-head"><div><div className="af-kicker">AUTONOMOUS FLEET</div><h2>20 AI Agents</h2><p>Mỗi Agent có trạng thái và doanh thu riêng, tự cập nhật mỗi 10 giây.</p></div><span className="af-info-pill">20 / 20 Agents</span></div><div className="af-agent-grid">{loading ? NAMES.map((name) => <div className="af-agent-skeleton" key={name} />) : fleet.map((agent, index) => { const on = agent.status === "running" && agent.runtimeEnabled !== false; return <article className={`af-agent-card ${on ? "is-on" : "is-off"}`} key={agent.id} tabIndex={0} aria-label={`${agent.name}: ${on ? "Đang chạy" : "Đã dừng"}`}><div className="af-agent-top"><span className="af-agent-icon">{ICONS[index]}</span><span className={`af-status-dot ${on ? "on" : "off"}`} /></div><strong>{agent.name}</strong><span className="af-agent-role">{agent.role || "AI Agent"}</span><div className="af-agent-status">{on ? "Đang chạy" : "Đã dừng"}</div><div className="af-agent-revenue">+{money(Number(agent.revenue || 0))}</div></article>; })}</div></section>;
 }
 
 function Workflows() {
