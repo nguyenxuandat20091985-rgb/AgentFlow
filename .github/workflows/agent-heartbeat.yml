@@ -1,15 +1,15 @@
-name: AgentFlow primary agent heartbeat
+name: AgentFlow automation loop
 
 on:
   schedule:
-    # GitHub Actions schedule is best-effort; 5 minutes is within the supported cadence.
-    - cron: "*/5 * * * *"
+    # 30-minute cadence keeps the monthly free Actions budget comfortable.
+    - cron: "*/30 * * * *"
   workflow_dispatch:
 
 permissions: {}
 
 jobs:
-  heartbeat-and-runtime:
+  automation:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
@@ -21,55 +21,44 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ -z "${APP_URL:-}" ]]; then
-            echo "ERROR: Repository variable AGENTFLOW_APP_URL is missing."
-            exit 1
-          fi
-          if [[ -z "${HEARTBEAT_SECRET:-}" ]]; then
-            echo "ERROR: Repository secret AGENT_HEARTBEAT_SECRET is missing."
-            exit 1
-          fi
-          APP_URL="${APP_URL%/}"
-          if [[ ! "$APP_URL" =~ ^https://[^[:space:]]+$ ]]; then
-            echo "ERROR: AGENTFLOW_APP_URL must be an https:// URL."
-            exit 1
-          fi
+          [[ -n "${APP_URL:-}" ]] || { echo "ERROR: AGENTFLOW_APP_URL is missing."; exit 1; }
+          [[ -n "${HEARTBEAT_SECRET:-}" ]] || { echo "ERROR: AGENT_HEARTBEAT_SECRET is missing."; exit 1; }
+          [[ "${APP_URL}" =~ ^https://[^[:space:]]+$ ]] || { echo "ERROR: AGENTFLOW_APP_URL must be https://."; exit 1; }
 
-      - name: Send SalesBot heartbeat
+      - name: Heartbeat SalesBot
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 2 \
-            --connect-timeout 10 --max-time 30 \
+          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 2 --connect-timeout 10 --max-time 30 \
             -X POST "${APP_URL%/}/api/agents/heartbeat" \
             -H "content-type: application/json" \
             -H "x-agent-heartbeat-secret: ${HEARTBEAT_SECRET}" \
             --data '{"agentId":"salesbot"}'
-          echo
-          echo "SalesBot heartbeat accepted."
 
-      - name: Send Marketing heartbeat
+      - name: Heartbeat Marketing
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 2 \
-            --connect-timeout 10 --max-time 30 \
+          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 2 --connect-timeout 10 --max-time 30 \
             -X POST "${APP_URL%/}/api/agents/heartbeat" \
             -H "content-type: application/json" \
             -H "x-agent-heartbeat-secret: ${HEARTBEAT_SECRET}" \
             --data '{"agentId":"marketing"}'
-          echo
-          echo "Marketing heartbeat accepted."
 
-      - name: Run primary agent runtime
+      - name: Run AgentFlow runtime
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 2 \
-            --connect-timeout 10 --max-time 120 \
+          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 2 --connect-timeout 10 --max-time 120 \
             -X POST "${APP_URL%/}/api/agents/runtime" \
             -H "content-type: application/json" \
             -H "x-agent-heartbeat-secret: ${HEARTBEAT_SECRET}" \
             --data '{}'
-          echo
-          echo "Primary agent runtime cycle completed."
+
+      - name: Refresh website catalog
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 2 --connect-timeout 10 --max-time 60 \
+            -X GET "${APP_URL%/}/api/website/refresh" \
+            -H "authorization: Bearer ${HEARTBEAT_SECRET}"
