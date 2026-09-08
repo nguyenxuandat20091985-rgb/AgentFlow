@@ -20,17 +20,10 @@ type Agent = {
   lastRun: { taskType: string; status: string; createdAt: string } | null;
 };
 
-type Registry = {
-  agents: Agent[];
-  isolation: {
-    productionRuntime: string[];
-    developmentAgents: string[];
-    policy: string;
-  };
-};
+type Registry = { agents: Agent[]; policy: string };
 
 export default function Manage() {
-  const [registry, setRegistry] = useState<Registry | null>(null);
+  const [registry, setRegistry] = useState<Registry>({ agents: [], policy: "Các AI chưa được kích hoạt không được phép chạy production runtime." });
   const [installed, setInstalled] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [deferred, setDeferred] = useState<any>(null);
@@ -40,8 +33,9 @@ export default function Manage() {
     try {
       const response = await fetch("/api/agents", { cache: "no-store" });
       if (!response.ok) return;
-      const data = (await response.json()) as Registry;
-      setRegistry(data);
+      const data = await response.json();
+      const agents = Array.isArray(data) ? data as Agent[] : Array.isArray(data.agents) ? data.agents as Agent[] : [];
+      setRegistry({ agents, policy: data?.isolation?.policy ?? "Các AI chưa được kích hoạt không được phép chạy production runtime." });
       setUpdatedAt(new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
     } catch {
       // Keep the last known registry on transient network failures.
@@ -72,7 +66,7 @@ export default function Manage() {
     }
   }
 
-  const agents = registry?.agents ?? [];
+  const agents = registry.agents;
   const running = agents.filter((agent) => agent.status === "running");
   const development = agents.filter((agent) => !agent.runtimeEnabled);
 
@@ -107,9 +101,7 @@ export default function Manage() {
             <div className={styles.meta}><span>Kênh: <b>{agent.workstream}</b></span><span>Runtime: <b>production</b></span></div>
             <div className={styles.protect}>🔒 Được bảo vệ khỏi runtime của các AI khác</div>
           </article>
-        )) : (
-          <div className={styles.empty}>Chưa có Agent nào có heartbeat hợp lệ.</div>
-        )}
+        )) : <div className={styles.empty}>Chưa có Agent nào có heartbeat hợp lệ.</div>}
       </section>
 
       <section className={styles.isolation}>
@@ -117,7 +109,7 @@ export default function Manage() {
           <div><div className={styles.eyebrow}>Isolation Guard</div><h2>18 AI còn lại — phát triển riêng</h2></div>
           <span>{development.length} agents · runtime OFF</span>
         </div>
-        <p className={styles.policy}>{registry?.isolation.policy ?? "Các AI chưa được kích hoạt không được phép chạy production runtime."}</p>
+        <p className={styles.policy}>{registry.policy}</p>
         <div className={styles.devGrid}>
           {development.map((agent) => (
             <div className={styles.devRow} key={agent.id}>
