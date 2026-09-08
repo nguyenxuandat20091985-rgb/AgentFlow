@@ -7,6 +7,8 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Nhà Bếp Thông Minh | Deal bếp & gia dụng được AI chọn lọc",
   description: "Khám phá deal bếp và gia dụng được AI sàng lọc từ Shopee, Lazada và AccessTrade.",
+  applicationName: "Nhà Bếp Thông Minh",
+  appleWebApp: { capable: true, title: "Nhà Bếp Thông Minh", statusBarStyle: "default" },
 };
 
 export default async function WebsitePage() {
