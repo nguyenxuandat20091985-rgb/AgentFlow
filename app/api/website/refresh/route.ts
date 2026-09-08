@@ -6,8 +6,10 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   const auth = request.headers.get("authorization");
-  const secret = process.env.CRON_SECRET;
-  if (secret && auth !== `Bearer ${secret}`) {
+  const cronSecret = process.env.CRON_SECRET;
+  const workerSecret = process.env.AGENT_HEARTBEAT_SECRET;
+  const allowed = [cronSecret, workerSecret].filter(Boolean).map((value) => `Bearer ${value}`);
+  if (allowed.length > 0 && !allowed.includes(auth || "")) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
