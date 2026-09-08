@@ -37,9 +37,7 @@ export default function Manage() {
       const agents = Array.isArray(data) ? data as Agent[] : Array.isArray(data.agents) ? data.agents as Agent[] : [];
       setRegistry({ agents, policy: data?.isolation?.policy ?? "Các AI chưa được kích hoạt không được phép chạy production runtime." });
       setUpdatedAt(new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
-    } catch {
-      // Keep the last known registry on transient network failures.
-    }
+    } catch {}
   }, []);
 
   useEffect(() => {
@@ -61,29 +59,25 @@ export default function Manage() {
       deferred.prompt();
       await deferred.userChoice;
       setDeferred(null);
-    } else {
-      setInstalled(true);
-    }
+    } else setInstalled(true);
   }
 
   const agents = registry.agents;
   const running = agents.filter((agent) => agent.status === "running");
   const development = agents.filter((agent) => !agent.runtimeEnabled);
+  const iconFor = (agent: Agent) => agent.id === "salesbot" ? "W" : agent.id === "marketing" ? "F" : agent.id === "binancescout" ? "₿" : "A";
+  const badgeFor = (agent: Agent) => agent.id === "binancescout" ? "SCOUT ACTIVE" : "ĐANG LÀM VIỆC";
 
   return (
     <main className={styles.page}>
       <header className={styles.header}>
         <a href="/" className={styles.back}>← Dashboard</a>
-        <div>
-          <div className={styles.eyebrow}>Control Center · realtime</div>
-          <h1>AI đang làm việc</h1>
-          <p>Theo dõi đúng trạng thái vận hành từ heartbeat, không đoán trạng thái.</p>
-        </div>
+        <div><div className={styles.eyebrow}>Control Center · realtime</div><h1>AI đang làm việc</h1><p>Theo dõi trạng thái Website, Facebook và AI #3 Binance từ runtime thực tế.</p></div>
         <span className={styles.live}>● LIVE</span>
       </header>
 
       <section className={styles.summary}>
-        <div><span>ĐANG VẬN HÀNH</span><strong>{running.length}</strong><small>AI có heartbeat hợp lệ</small></div>
+        <div><span>ĐANG VẬN HÀNH</span><strong>{running.length}</strong><small>AI có runtime hoạt động</small></div>
         <div><span>KHU VỰC PHÁT TRIỂN</span><strong>{development.length}</strong><small>Chưa được phép chạy production</small></div>
         <div><span>CHU KỲ CẬP NHẬT</span><strong>30s</strong><small>{updatedAt ? `Cập nhật ${updatedAt}` : "Đang tải..."}</small></div>
       </section>
@@ -92,44 +86,27 @@ export default function Manage() {
         {running.length ? running.map((agent) => (
           <article className={`${styles.agentCard} ${styles.active}`} key={agent.id}>
             <div className={styles.cardTop}>
-              <div className={styles.icon}>{agent.name === "AI Website" ? "W" : "F"}</div>
-              <span className={styles.running}><i /> ĐANG LÀM VIỆC</span>
+              <div className={styles.icon}>{iconFor(agent)}</div>
+              <span className={styles.running}><i /> {badgeFor(agent)}</span>
             </div>
             <h2>{agent.name}</h2>
             <p className={styles.role}>{agent.role}</p>
             <div className={styles.task}><span>CÔNG VIỆC HIỆN TẠI</span><strong>{agent.currentTask}</strong></div>
-            <div className={styles.meta}><span>Kênh: <b>{agent.workstream}</b></span><span>Runtime: <b>production</b></span></div>
+            <div className={styles.meta}><span>Kênh: <b>{agent.workstream}</b></span><span>Nguồn: <b>{agent.statusSource}</b></span></div>
             <div className={styles.protect}>🔒 Được bảo vệ khỏi runtime của các AI khác</div>
           </article>
-        )) : <div className={styles.empty}>Chưa có Agent nào có heartbeat hợp lệ.</div>}
+        )) : <div className={styles.empty}>Chưa có Agent nào đang hoạt động.</div>}
       </section>
 
       <section className={styles.isolation}>
-        <div className={styles.sectionHead}>
-          <div><div className={styles.eyebrow}>Isolation Guard</div><h2>18 AI còn lại — phát triển riêng</h2></div>
-          <span>{development.length} agents · runtime OFF</span>
-        </div>
+        <div className={styles.sectionHead}><div><div className={styles.eyebrow}>Isolation Guard</div><h2>{development.length} AI còn lại — phát triển riêng</h2></div><span>{development.length} agents · runtime OFF</span></div>
         <p className={styles.policy}>{registry.policy}</p>
-        <div className={styles.devGrid}>
-          {development.map((agent) => (
-            <div className={styles.devRow} key={agent.id}>
-              <div><strong>{agent.name}</strong><small>{agent.role}</small></div>
-              <span>PHÁT TRIỂN RIÊNG</span>
-            </div>
-          ))}
-        </div>
+        <div className={styles.devGrid}>{development.map((agent) => <div className={styles.devRow} key={agent.id}><div><strong>{agent.name}</strong><small>{agent.role}</small></div><span>PHÁT TRIỂN RIÊNG</span></div>)}</div>
       </section>
 
-      <section className={styles.installCard}>
-        <div><div className={styles.eyebrow}>Mobile workspace</div><h2>AgentFlow trên điện thoại</h2><p>Đưa Trung tâm điều khiển AI lên màn hình chính.</p></div>
-        <button onClick={install}>{installed ? "✓ Đã cài ứng dụng" : "Cài AgentFlow"}</button>
-      </section>
+      <section className={styles.installCard}><div><div className={styles.eyebrow}>Mobile workspace</div><h2>AgentFlow trên điện thoại</h2><p>Đưa Trung tâm điều khiển AI lên màn hình chính.</p></div><button onClick={install}>{installed ? "✓ Đã cài ứng dụng" : "Cài AgentFlow"}</button></section>
 
-      <section className={styles.quick}>
-        <div><div className={styles.eyebrow}>CEO Console</div><h2>Giao việc cho AI</h2></div>
-        <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="Ví dụ: phân tích 10 deal mới và chuẩn bị kế hoạch nội dung..." />
-        <a className={!prompt.trim() ? styles.disabled : ""} href={prompt.trim() ? `/?goal=${encodeURIComponent(prompt)}` : "/manage"}>Mở AI Console →</a>
-      </section>
+      <section className={styles.quick}><div><div className={styles.eyebrow}>CEO Console</div><h2>Giao việc cho AI</h2></div><textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="Ví dụ: phân tích 10 deal mới và chuẩn bị kế hoạch nội dung..." /><a className={!prompt.trim() ? styles.disabled : ""} href={prompt.trim() ? `/?goal=${encodeURIComponent(prompt)}` : "/manage"}>Mở AI Console →</a></section>
     </main>
   );
 }
