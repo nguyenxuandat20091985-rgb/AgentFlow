@@ -62,3 +62,13 @@ jobs:
           curl --fail-with-body --silent --show-error --retry 2 --retry-delay 2 --connect-timeout 10 --max-time 60 \
             -X GET "${APP_URL%/}/api/website/refresh" \
             -H "authorization: Bearer ${HEARTBEAT_SECRET}"
+
+      - name: Facebook outreach publisher
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 2 --connect-timeout 10 --max-time 60 \
+            -X POST "${APP_URL%/}/api/facebook/publish" \
+            -H "authorization: Bearer ${HEARTBEAT_SECRET}" \
+            -H "content-type: application/json" \
+            --data '{}'
