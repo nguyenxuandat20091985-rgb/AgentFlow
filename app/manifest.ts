@@ -2,14 +2,14 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "AgentFlow AI",
-    short_name: "AgentFlow",
-    description: "AI agent workflow control center",
-    start_url: "/",
-    scope: "/",
+    name: "Nhà Bếp Thông Minh",
+    short_name: "Nhà Bếp",
+    description: "Ứng dụng mua sắm và khám phá deal bếp, gia dụng được AI chọn lọc.",
+    start_url: "/website",
+    scope: "/website",
     display: "standalone",
-    background_color: "#020617",
-    theme_color: "#020617",
+    background_color: "#f7f6f1",
+    theme_color: "#151612",
     orientation: "portrait",
     icons: [
       { src: "/icon-192.svg", sizes: "192x192", type: "image/svg+xml", purpose: "any" },
