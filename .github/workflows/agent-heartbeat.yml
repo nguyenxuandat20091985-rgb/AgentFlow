@@ -9,9 +9,9 @@ on:
 permissions: {}
 
 jobs:
-  heartbeat:
+  heartbeat-and-runtime:
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 5
     env:
       APP_URL: ${{ vars.AGENTFLOW_APP_URL }}
       HEARTBEAT_SECRET: ${{ secrets.AGENT_HEARTBEAT_SECRET }}
@@ -34,7 +34,6 @@ jobs:
             echo "ERROR: AGENTFLOW_APP_URL must be an https:// URL."
             exit 1
           fi
-          echo "APP_URL configured: ${APP_URL}"
 
       - name: Send SalesBot heartbeat
         shell: bash
@@ -61,3 +60,16 @@ jobs:
             --data '{"agentId":"marketing"}'
           echo
           echo "Marketing heartbeat accepted."
+
+      - name: Run primary agent runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 2 \
+            --connect-timeout 10 --max-time 120 \
+            -X POST "${APP_URL%/}/api/agents/runtime" \
+            -H "content-type: application/json" \
+            -H "x-agent-heartbeat-secret: ${HEARTBEAT_SECRET}" \
+            --data '{}'
+          echo
+          echo "Primary agent runtime cycle completed."
