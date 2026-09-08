@@ -11,6 +11,7 @@ const AGENTS = [
 const PRIMARY = ["salesbot", "marketing"] as const;
 const TARGET = 15_000_000;
 const HEARTBEAT_MAX_AGE_MS = 10 * 60 * 1000;
+const facebookAutoPublishEnabled = () => process.env.FACEBOOK_AUTOPUBLISH_ENABLED !== "false";
 
 export const dynamic = "force-dynamic";
 
@@ -90,7 +91,7 @@ export async function GET() {
       },
       channels: {
         website: { url: "https://agentflow-khaki-rho.vercel.app/website", ownerAgent: "salesbot", status: "live" },
-        facebook: { ownerAgent: "marketing", publisherConfigured: facebookPublishingConfigured(), autoPublish: process.env.FACEBOOK_AUTOPUBLISH_ENABLED === "true" },
+        facebook: { ownerAgent: "marketing", publisherConfigured: facebookPublishingConfigured(), autoPublish: facebookPublishingConfigured() && facebookAutoPublishEnabled() },
       },
       fleet,
       kpis: primaryKpis,
