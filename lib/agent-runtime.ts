@@ -17,7 +17,7 @@ export const PRIMARY_RUNTIME_TASKS = {
 
 export type RuntimeAgentId = keyof typeof PRIMARY_RUNTIME_TASKS;
 type RevenueRow = { amount?: number | string | null; agent_id?: string | null; created_at?: string | null };
-type DealRow = { id?: string; deal_title?: string | null; revenue?: number | string | null; status?: string | null; created_at?: string | null; url?: string | null; image?: string | null; category?: string | null };
+type DealRow = { id?: string; deal_title?: string | null; revenue?: number | string | null; status?: string | null; created_at?: string | null };
 type AffiliateRow = { id?: string; order_code?: string | null; platform?: string | null; commission?: number | string | null; status?: string | null; created_at?: string | null };
 
 type QueueRow = {
@@ -79,7 +79,7 @@ async function persistActionQueue(agentId: RuntimeAgentId, actionQueue: Array<Re
 async function buildRuntimeSnapshot(agentId: RuntimeAgentId) {
   const [ledger, deals, affiliateOrders] = await Promise.all([
     supabaseAdmin<RevenueRow[]>("revenue_ledger?select=amount,agent_id,created_at&order=created_at.desc&limit=100"),
-    supabaseAdmin<DealRow[]>("commerce_deals?select=id,deal_title,revenue,status,created_at,url,image,category&order=created_at.desc&limit=50"),
+    supabaseAdmin<DealRow[]>("commerce_deals?select=id,deal_title,revenue,status,created_at&order=created_at.desc&limit=50"),
     supabaseAdmin<AffiliateRow[]>("affiliate_orders?select=id,order_code,platform,commission,status,created_at&order=created_at.desc&limit=50"),
   ]);
 
