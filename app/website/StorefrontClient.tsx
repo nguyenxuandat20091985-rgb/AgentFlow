@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { WebsiteProduct, WebsiteNetwork } from "@/lib/website-catalog";
 import styles from "./page.module.css";
 
@@ -25,7 +25,6 @@ function networkLabel(network: WebsiteNetwork) {
 
 export default function StorefrontClient({ products }: Props) {
   const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
   const channelParam = searchParams.get("channel") as Channel | null;
   const [query, setQuery] = useState("");
