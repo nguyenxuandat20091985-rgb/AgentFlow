@@ -64,9 +64,10 @@ export default function Manage() {
 
   const agents = registry.agents;
   const running = agents.filter((agent) => agent.status === "running");
+  const active = agents.filter((agent) => agent.runtimeEnabled);
   const development = agents.filter((agent) => !agent.runtimeEnabled);
   const iconFor = (agent: Agent) => agent.id === "salesbot" ? "W" : agent.id === "marketing" ? "F" : agent.id === "binancescout" ? "₿" : "A";
-  const badgeFor = (agent: Agent) => agent.id === "binancescout" ? "SCOUT ACTIVE" : "ĐANG LÀM VIỆC";
+  const badgeFor = (agent: Agent) => agent.status === "running" ? (agent.id === "binancescout" ? "SCOUT ACTIVE" : "ĐANG LÀM VIỆC") : (agent.id === "binancescout" ? "CHỜ CHU KỲ SCOUT" : "ĐÃ KÍCH HOẠT · CHỜ HEARTBEAT");
 
   return (
     <main className={styles.page}>
@@ -77,14 +78,14 @@ export default function Manage() {
       </header>
 
       <section className={styles.summary}>
-        <div><span>ĐANG VẬN HÀNH</span><strong>{running.length}</strong><small>AI có runtime hoạt động</small></div>
-        <div><span>KHU VỰC PHÁT TRIỂN</span><strong>{development.length}</strong><small>Chưa được phép chạy production</small></div>
-        <div><span>CHU KỲ CẬP NHẬT</span><strong>30s</strong><small>{updatedAt ? `Cập nhật ${updatedAt}` : "Đang tải..."}</small></div>
+        <div><span>ĐANG CHẠY</span><strong>{running.length}</strong><small>Heartbeat/runtime đang hoạt động</small></div>
+        <div><span>ĐÃ KÍCH HOẠT</span><strong>{active.length}</strong><small>AI được phép chạy production</small></div>
+        <div><span>CẬP NHẬT</span><strong>30s</strong><small>{updatedAt ? `Cập nhật ${updatedAt}` : "Đang tải..."}</small></div>
       </section>
 
       <section className={styles.primaryGrid}>
-        {running.length ? running.map((agent) => (
-          <article className={`${styles.agentCard} ${styles.active}`} key={agent.id}>
+        {active.length ? active.map((agent) => (
+          <article className={`${styles.agentCard} ${agent.status === "running" ? styles.active : ""}`} key={agent.id}>
             <div className={styles.cardTop}>
               <div className={styles.icon}>{iconFor(agent)}</div>
               <span className={styles.running}><i /> {badgeFor(agent)}</span>
@@ -95,7 +96,7 @@ export default function Manage() {
             <div className={styles.meta}><span>Kênh: <b>{agent.workstream}</b></span><span>Nguồn: <b>{agent.statusSource}</b></span></div>
             <div className={styles.protect}>🔒 Được bảo vệ khỏi runtime của các AI khác</div>
           </article>
-        )) : <div className={styles.empty}>Chưa có Agent nào đang hoạt động.</div>}
+        )) : <div className={styles.empty}>Chưa có AI production nào được kích hoạt.</div>}
       </section>
 
       <section className={styles.isolation}>
