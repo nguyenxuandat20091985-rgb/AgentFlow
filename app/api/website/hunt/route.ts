@@ -4,19 +4,38 @@ import { discoverWebsiteSignals } from "@/lib/website-hunter";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+/** Accept both Authorization Bearer and legacy x-agent-heartbeat-secret. */
 function authorized(request: NextRequest) {
   const expected = process.env.AGENT_HEARTBEAT_SECRET?.trim();
-  const supplied = request.headers.get("x-agent-heartbeat-secret")?.trim();
-  return Boolean(expected && supplied && supplied === expected);
+  if (!expected) return false;
+  const legacy = request.headers.get("x-agent-heartbeat-secret")?.trim();
+  const authorization = request.headers.get("authorization")?.trim() || "";
+  const bearer = authorization.toLowerCase().startsWith("bearer ")
+    ? authorization.slice(7).trim()
+    : "";
+  return legacy === expected || bearer === expected;
 }
 
 export async function GET(request: NextRequest) {
-  if (!authorized(request)) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  if (!authorized(request)) {
+    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  }
   try {
     const result = await discoverWebsiteSignals();
-    return NextResponse.json({ ok: true, agent: "salesbot", channel: "website", mode: "public-signal-discovery", ...result }, { headers: { "cache-control": "no-store" } });
+    return NextResponse.json(
+      {
+        ok: true,
+        agent: "salesbot",
+        channel: "website",
+        mode: "public-signal-discovery",
+        ...result,
+      },
+      { headers: { "cache-control": "no-store" } },
+    );
   } catch (error) {
-    console.error("[website-hunt] failed", { error: error instanceof Error ? error.message : String(error) });
+    console.error("[website-hunt] failed", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json({ ok: false, error: "website_signal_hunt_failed" }, { status: 502 });
   }
 }
