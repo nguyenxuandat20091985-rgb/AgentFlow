@@ -8,7 +8,8 @@ Operate the **Nhà Bếp Thông Minh** storefront as an independent production a
 2. Discover public buying-intent signals (public RSS only).
 3. Rank and merchandise products on `/website`.
 4. Prepare SEO / product / follow-up **drafts** only.
-5. Track clicks and verified revenue evidence — never invent orders or payments.
+5. Prepare **outreach post drafts** (phase 1: draft-only, allow-list, no auto-post).
+6. Track clicks and verified revenue evidence — never invent orders or payments.
 
 ## Runtime boundary
 
@@ -25,10 +26,13 @@ Operate the **Nhà Bếp Thông Minh** storefront as an independent production a
 | `POST /api/agents/heartbeat` | Keep salesbot online | Bearer **or** `x-agent-heartbeat-secret` |
 | `POST /api/agents/runtime` | Planning cycle + action queue | Bearer **or** `x-agent-heartbeat-secret` |
 | `POST /api/website/hunt` | Public buyer-intent discovery | Bearer **or** `x-agent-heartbeat-secret` |
+| `POST /api/website/outreach` | Outreach drafts (phase 1) | Bearer **or** `x-agent-heartbeat-secret` |
 | `GET /api/website/refresh` | Revalidate catalog cache | Bearer cron/heartbeat secret |
 | `GET /api/website/catalog` | Public catalog | Public |
 | `GET /api/cron/website` | Vercel cron → refresh | Bearer `CRON_SECRET` |
 | `/website` | Storefront PWA | Public |
+
+See also: [ai1-website-outreach.md](./ai1-website-outreach.md)
 
 ## Automation loop
 
@@ -57,6 +61,7 @@ Vercel cron: `/api/cron/website` daily 03:00 UTC → catalog refresh.
 - `OPENAI_API_KEY`
 - `ACCESSTRADE_PUBLISHER_ID` / `ACCESSTRADE_API_KEY`
 - `CRON_SECRET` (recommended)
+- Optional: `WEBSITE_OUTREACH_DESTINATIONS` JSON overrides
 
 If heartbeat returns `401 unauthorized`, the two secrets are out of sync.
 
@@ -67,6 +72,7 @@ If heartbeat returns `401 unauthorized`, the two secrets are out of sync.
 3. Affiliate links must remain provider-generated.
 4. Never add development agents to the primary runtime allow-list in the same change as Website work.
 5. Feature branch for non-trivial Website changes: `agent/salesbot-*` or `agent/ai1-website-*`.
+6. Outreach phase 1 never auto-posts to blocked hosts (FB/IG/TikTok/Zalo/marketplaces).
 
 ## Activation checklist
 
@@ -75,3 +81,4 @@ If heartbeat returns `401 unauthorized`, the two secrets are out of sync.
 3. Confirm `GET /api/agents` shows salesbot `status: "running"` and fresh `lastSeenAt`.
 4. Confirm latest `agent_task_runs` row for `salesbot` is `completed`.
 5. Storefront `/website` shows catalog products with affiliate links.
+6. Optional: call `/api/website/outreach` and review `website_outreach_post_draft` queue rows.

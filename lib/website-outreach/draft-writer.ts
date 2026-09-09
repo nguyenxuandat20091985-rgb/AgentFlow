@@ -1,6 +1,6 @@
 import type { AccessTradeFeedItem } from "@/lib/accesstrade";
 import type { WebsiteSignal } from "@/lib/website-hunter";
-import type { OutreachDestination } from "./policy";
+import { destinationAllowsHost, type OutreachDestination } from "./policy";
 
 export type OutreachDraft = {
   type: "website_outreach_post_draft";
@@ -102,6 +102,11 @@ function buildSeoBody(product: AccessTradeFeedItem): string {
     .join("\n");
 }
 
+function allowsSignalHost(dest: OutreachDestination, url: string): boolean {
+  if (dest.kind === "owned_storefront" || dest.kind === "owned_blog" || dest.kind === "manual_only") return true;
+  return destinationAllowsHost(dest, url);
+}
+
 export function buildOutreachDrafts(options: {
   destinations: OutreachDestination[];
   signals: WebsiteSignal[];
@@ -117,7 +122,7 @@ export function buildOutreachDrafts(options: {
       for (const signal of signals) {
         if (count >= dest.maxDraftsPerCycle) break;
         if (signal.intent_score < 30) continue;
-        if (signal.source_url && !destinationAllowsOrOwned(dest, signal.source_url)) continue;
+        if (signal.source_url && !allowsSignalHost(dest, signal.source_url)) continue;
         const product = pickProduct(products, signal);
         drafts.push({
           type: "website_outreach_post_draft",
@@ -136,11 +141,7 @@ export function buildOutreachDrafts(options: {
           affiliateLink: product?.aff_link ? String(product.aff_link) : null,
           intentScore: signal.intent_score,
           matchedTerms: signal.matched_terms,
-          complianceNotes: [
-            "draft_only",
-            "verify community rules before post",
-            dest.notes,
-          ],
+          complianceNotes: ["draft_only", "verify community rules before post", dest.notes],
         });
         count += 1;
       }
@@ -196,15 +197,4 @@ export function buildOutreachDrafts(options: {
   }
 
   return drafts;
-}
-
-function destinationAllowsOrOwned(dest: OutreachDestination, url: string): boolean {
-  if (dest.kind === "owned_storefront" || dest.kind === "owned_blog" || dest.kind === "manual_only") return true;
-  try {
-    // inline to avoid circular import style issues in some bundlers
-    const { destinationAllowsHost } = require("./policy") as typeof import("./policy");
-    return destinationAllowsHost(dest, url);
-  } catch {
-    return false;
-  }
 }
