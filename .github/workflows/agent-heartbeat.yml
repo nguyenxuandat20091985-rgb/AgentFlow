@@ -2,7 +2,6 @@ name: AgentFlow automation loop
 
 on:
   schedule:
-    # Keep heartbeats fresh: runtime accepts a maximum age of 10 minutes.
     - cron: "*/5 * * * *"
   workflow_dispatch:
 
@@ -11,7 +10,7 @@ permissions: {}
 jobs:
   automation:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 10
     env:
       APP_URL: ${{ vars.AGENTFLOW_APP_URL }}
       HEARTBEAT_SECRET: ${{ secrets.AGENT_HEARTBEAT_SECRET }}
@@ -78,12 +77,22 @@ jobs:
             -H "authorization: Bearer ${HEARTBEAT_SECRET}" \
             -H "x-agent-heartbeat-secret: ${HEARTBEAT_SECRET}"
 
-      - name: AI CEO review outreach drafts and report
+      - name: AI CEO review + Tier A autopublish + owner report
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 2 --connect-timeout 10 --max-time 120 \
+          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 2 --connect-timeout 10 --max-time 180 \
             -X POST "${APP_URL%/}/api/ceo/outreach-review" \
+            -H "content-type: application/json" \
+            -H "authorization: Bearer ${HEARTBEAT_SECRET}" \
+            -H "x-agent-heartbeat-secret: ${HEARTBEAT_SECRET}"
+
+      - name: Flush remaining Tier A autopublish
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 2 --connect-timeout 10 --max-time 90 \
+            -X POST "${APP_URL%/}/api/website/autopublish" \
             -H "content-type: application/json" \
             -H "authorization: Bearer ${HEARTBEAT_SECRET}" \
             -H "x-agent-heartbeat-secret: ${HEARTBEAT_SECRET}"
