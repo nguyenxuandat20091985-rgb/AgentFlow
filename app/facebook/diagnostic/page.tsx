@@ -31,11 +31,17 @@ export default function FacebookDiagnosticPage() {
       const response = await fetch("/api/facebook/diagnostic", {
         method: "GET",
         cache: "no-store",
-        headers: { "x-agent-heartbeat-secret": secret },
+        headers: {
+          // Canonical diagnostic auth header. The API also accepts the legacy
+          // x-agent-heartbeat-secret header for existing automation.
+          Authorization: `Bearer ${secret.trim()}`,
+        },
       });
       const data = (await response.json()) as DiagnosticResult;
       setResult(data);
-      if (!response.ok) setMessage(data.error || `Kiểm tra thất bại (${response.status})`);
+      if (!response.ok) {
+        setMessage(data.error || `Kiểm tra thất bại (${response.status})`);
+      }
     } catch {
       setMessage("Không thể kết nối tới endpoint diagnostic.");
     } finally {
@@ -53,7 +59,7 @@ export default function FacebookDiagnosticPage() {
           <div style={{ fontSize: 12, letterSpacing: 1.5, textTransform: "uppercase", opacity: .65 }}>AgentFlow · AI Facebook</div>
           <h1 style={{ fontSize: 30, margin: "8px 0 8px" }}>Kiểm tra Facebook token</h1>
           <p style={{ color: "#aab6ca", lineHeight: 1.6, marginTop: 0 }}>
-            Nhập <code>AGENT_HEARTBEAT_SECRET</code> để trình duyệt gửi secret qua header bảo mật. Secret không nằm trong URL và không được hiển thị lại.
+            Nhập <code>AGENT_HEARTBEAT_SECRET</code>. Trình duyệt gửi secret qua <code>Authorization: Bearer</code>; secret không nằm trong URL và không được hiển thị lại.
           </p>
 
           <form onSubmit={runDiagnostic}>
@@ -70,7 +76,7 @@ export default function FacebookDiagnosticPage() {
             />
             <button
               type="submit"
-              disabled={loading || !secret}
+              disabled={loading || !secret.trim()}
               style={{ marginTop: 14, width: "100%", padding: "14px 18px", borderRadius: 12, border: 0, background: loading ? "#334155" : "#2563eb", color: "white", fontWeight: 700, fontSize: 16, cursor: loading ? "wait" : "pointer" }}
             >
               {loading ? "Đang kiểm tra…" : "Kiểm tra ngay"}
