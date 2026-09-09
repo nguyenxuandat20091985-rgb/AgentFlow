@@ -62,7 +62,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ok: true, status: "published", agentId: "marketing", actionId: action.id, facebookPostId: published.id, pageName: published.pageName, publishedAt });
   } catch (error) {
+    const message = error instanceof Error ? error.message : "facebook_publish_failed";
+    if (message.startsWith("Facebook token validation failed:")) {
+      console.warn("[facebook-publish] provider token is invalid or expired");
+      return NextResponse.json({ ok: true, status: "blocked", reason: "facebook_token_invalid", action: "replace_facebook_page_access_token" });
+    }
     console.error("[facebook-publish]", error);
-    return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : "facebook_publish_failed" }, { status: 502 });
+    return NextResponse.json({ ok: false, error: message }, { status: 502 });
   }
 }
