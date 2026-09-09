@@ -3,12 +3,13 @@ import { executeAgent } from "@/lib/agent-engine";
 import { fetchAccessTradeDatafeeds, rankAffiliateOpportunities, type AccessTradeFeedItem } from "@/lib/accesstrade";
 import { discoverWebsiteSignals, type WebsiteSignal } from "@/lib/website-hunter";
 import { discoverFacebookSignals, type FacebookSignal } from "@/lib/facebook-hunter";
+import { buildOutreachDrafts, loadDestinations } from "@/lib/website-outreach";
 
 export const PRIMARY_RUNTIME_TASKS = {
   salesbot: {
     name: "SalesBot — Website Commerce Agent",
     channel: "website",
-    goal: "Operate the Nhà Bếp Thông Minh storefront as the website affiliate-commerce AI: discover real affiliate opportunities and public buying-intent signals, prioritize useful products, prepare SEO/product merchandising and customer follow-up drafts, and improve on-site conversion. Never invent leads, customers, orders, payments, or revenue.",
+    goal: "Operate the Nhà Bếp Thông Minh storefront as the website affiliate-commerce AI: discover real affiliate opportunities and public buying-intent signals, prioritize useful products, prepare SEO/product merchandising, customer follow-up drafts, and compliant outreach post drafts (draft-only, allow-list). Never invent leads, customers, orders, payments, or revenue. Never auto-post to blocked platforms.",
   },
   marketing: {
     name: "Marketing — Facebook Growth Agent",
@@ -55,6 +56,22 @@ function buildDeterministicQueue(agentId: RuntimeAgentId, deals: DealRow[], affi
     affiliateOrders.filter((o) => ["pending", "open", "processing"].includes(String(o.status ?? "").toLowerCase())).slice(0, 5).forEach((order) => queue.push({ type: "website_affiliate_followup_draft", priority: "medium", sourceId: order.id ?? null, orderCode: order.order_code ?? null, channel: "website", execution: "draft_only" }));
     ranked.slice(0, 8).forEach((item) => queue.push({ type: "website_affiliate_merchandising_draft", priority: Number(item.opportunity_score ?? 0) >= 25 ? "high" : "medium", productId: item.product_id ?? null, name: item.name ?? null, category: item.category ?? null, price: item.price ?? null, discountRate: item.discount_rate ?? null, image: item.image ?? null, affiliateLink: item.aff_link ?? null, opportunityScore: item.opportunity_score ?? null, channel: "website", execution: "draft_only" }));
     ranked.slice(0, 3).forEach((item) => queue.push({ type: "website_seo_content_brief", priority: "medium", productId: item.product_id ?? null, name: item.name ?? null, category: item.category ?? null, channel: "website", execution: "draft_only", brief: "Create useful buyer-first content with comparison points, FAQ and a clear affiliate CTA using only provider-supplied facts." }));
+
+    // Phase-1 outreach planner: draft-only posts for allow-listed destinations (salesbot / website only).
+    try {
+      const outreachDrafts = buildOutreachDrafts({
+        destinations: loadDestinations(),
+        signals,
+        products: ranked,
+      });
+      for (const draft of outreachDrafts) {
+        queue.push({ ...draft });
+      }
+    } catch (error) {
+      console.warn("[agent-runtime] outreach draft build skipped", {
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
   } else {
     facebookSignals.slice(0, 8).forEach((signal) => queue.push({
       type: "facebook_outbound_advice_draft",
@@ -82,15 +99,24 @@ async function persistActionQueue(agentId: RuntimeAgentId, actionQueue: Array<Re
     const sourceId = action.sourceId == null ? String(action.productId ?? "") : String(action.sourceId);
     const type = String(action.type ?? "action");
     const productId = action.productId == null ? "" : String(action.productId);
+    const destinationId = action.destinationId == null ? "" : String(action.destinationId);
     return {
       agent_id: agentId,
       action_type: type,
       channel: String(action.channel ?? PRIMARY_RUNTIME_TASKS[agentId].channel),
       status: "pending",
       priority: action.priority === "high" ? "high" : action.priority === "low" ? "low" : "medium",
-      source_type: productId ? "affiliate_product" : sourceId ? (action.sourceType === "facebook_public_signal" ? "facebook_public_signal" : "website_signal_or_record") : "runtime",
+      source_type: productId
+        ? "affiliate_product"
+        : sourceId
+          ? action.sourceType === "facebook_public_signal"
+            ? "facebook_public_signal"
+            : type === "website_outreach_post_draft"
+              ? "website_outreach"
+              : "website_signal_or_record"
+          : "runtime",
       source_id: sourceId || null,
-      dedupe_key: `${agentId}:${type}:${sourceId}:${productId}`,
+      dedupe_key: `${agentId}:${type}:${destinationId}:${sourceId}:${productId}`,
       payload: action,
     };
   });
@@ -159,7 +185,8 @@ async function buildRuntimeSnapshot(agentId: RuntimeAgentId) {
       "Website signal discovery reads public feeds only; it does not log in, bypass access controls, or scrape private areas.",
       "Facebook signal discovery uses public, provider-approved feeds only; it does not log in, scrape private groups, harvest private user data, or bypass Meta access controls.",
       "Runtime is planning/orchestration only: never create payments, orders, commissions, or revenue.",
-      "Website AI may prepare merchandising, SEO and CTA drafts; external publication remains controlled by an authorized provider workflow.",
+      "Website AI may prepare merchandising, SEO, CTA and outreach drafts; external publication remains controlled by the operator or an authorized connector.",
+      "Outreach phase 1 is draft_only with host allow-list; blocked hosts (Facebook, Instagram, TikTok, Zalo, marketplaces) are never auto-targeted.",
       "Facebook AI may publish only through the configured Page access token and authorized Page workflow; outbound community replies remain approval-only.",
       "Affiliate links must use provider-generated links; never fabricate tracking parameters.",
       "Never claim an action was sent, published, converted, or paid unless a provider/database confirmation exists.",
