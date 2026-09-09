@@ -13,6 +13,19 @@ export function facebookPublishingConfigured() {
   return Boolean(getPageToken());
 }
 
+export async function validateFacebookPageToken() {
+  const accessToken = getPageToken();
+  if (!accessToken) return { configured: false, valid: false, reason: "token_not_configured" as const };
+  try {
+    const response = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/me?fields=id,name&access_token=${encodeURIComponent(accessToken)}`, { cache: "no-store" });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.id) return { configured: true, valid: false, reason: "token_invalid" as const };
+    return { configured: true, valid: true, pageId: String(data.id), pageName: data.name ?? null };
+  } catch {
+    return { configured: true, valid: false, reason: "facebook_unreachable" as const };
+  }
+}
+
 export async function publishFacebookPagePost(message: string, link?: string | null) {
   const accessToken = getPageToken();
   if (!accessToken) throw new Error("FACEBOOK_PAGE_ACCESS_TOKEN is not configured");
