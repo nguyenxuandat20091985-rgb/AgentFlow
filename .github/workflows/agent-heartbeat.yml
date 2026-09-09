@@ -2,8 +2,8 @@ name: AgentFlow automation loop
 
 on:
   schedule:
-    # 30-minute cadence keeps the monthly free Actions budget comfortable.
-    - cron: "*/30 * * * *"
+    # Keep primary-agent heartbeats fresh (runtime requires <=10 minutes).
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 permissions: {}
