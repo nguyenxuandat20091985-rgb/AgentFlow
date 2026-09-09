@@ -59,6 +59,12 @@ function scoreSignal(title: string, body: string) {
   return { score: Math.min(100, score), matched };
 }
 
+function safeIsoDate(value: string) {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
 function configuredFeeds() {
   const custom = (process.env.WEBSITE_SIGNAL_FEEDS || "").split("\n").map((v) => v.trim()).filter(Boolean);
   if (custom.length) return custom.slice(0, 8);
@@ -87,7 +93,7 @@ export async function discoverWebsiteSignals() {
           title: item.title.slice(0, 500),
           body: item.body.slice(0, 5000),
           author: item.author ? item.author.slice(0, 160) : null,
-          published_at: item.published ? new Date(item.published).toISOString() : null,
+          published_at: safeIsoDate(item.published),
           intent_score: scored.score,
           matched_terms: scored.matched,
           metadata: { feedUrl },
@@ -109,7 +115,7 @@ export async function discoverWebsiteSignals() {
     headers: { Prefer: "return=representation,resolution=ignore-duplicates" },
     body: JSON.stringify(unique),
   }).catch((error) => {
-    console.error("[website-hunter] persistence failed", error);
+    console.error("[website-hunter] persistence failed", { message: error instanceof Error ? error.message : String(error) });
     return [];
   });
 
