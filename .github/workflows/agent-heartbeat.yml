@@ -2,7 +2,7 @@ name: AgentFlow automation loop
 
 on:
   schedule:
-    # Keep primary-agent heartbeats fresh (runtime requires <=10 minutes).
+    # Keep heartbeats fresh: runtime accepts a maximum age of 10 minutes.
     - cron: "*/5 * * * *"
   workflow_dispatch:
 
@@ -25,14 +25,14 @@ jobs:
           [[ -n "${HEARTBEAT_SECRET:-}" ]] || { echo "ERROR: AGENT_HEARTBEAT_SECRET is missing."; exit 1; }
           [[ "${APP_URL}" =~ ^https://[^[:space:]]+$ ]] || { echo "ERROR: AGENTFLOW_APP_URL must be https://."; exit 1; }
 
-      - name: Heartbeat SalesBot
+      - name: Heartbeat SalesBot (AI Website)
         shell: bash
         run: |
           set -euo pipefail
           curl --fail-with-body --silent --show-error --retry 2 --retry-delay 2 --connect-timeout 10 --max-time 30 \
             -X POST "${APP_URL%/}/api/agents/heartbeat" \
             -H "content-type: application/json" \
-            -H "x-agent-heartbeat-secret: ${HEARTBEAT_SECRET}" \
+            -H "authorization: Bearer ${HEARTBEAT_SECRET}" \
             --data '{"agentId":"salesbot"}'
 
       - name: Heartbeat Marketing
@@ -42,18 +42,18 @@ jobs:
           curl --fail-with-body --silent --show-error --retry 2 --retry-delay 2 --connect-timeout 10 --max-time 30 \
             -X POST "${APP_URL%/}/api/agents/heartbeat" \
             -H "content-type: application/json" \
-            -H "x-agent-heartbeat-secret: ${HEARTBEAT_SECRET}" \
+            -H "authorization: Bearer ${HEARTBEAT_SECRET}" \
             --data '{"agentId":"marketing"}'
 
-      - name: Run AgentFlow runtime
+      - name: Run AI Website only
         shell: bash
         run: |
           set -euo pipefail
           curl --fail-with-body --silent --show-error --retry 2 --retry-delay 2 --connect-timeout 10 --max-time 120 \
             -X POST "${APP_URL%/}/api/agents/runtime" \
             -H "content-type: application/json" \
-            -H "x-agent-heartbeat-secret: ${HEARTBEAT_SECRET}" \
-            --data '{}'
+            -H "authorization: Bearer ${HEARTBEAT_SECRET}" \
+            --data '{"agentId":"salesbot"}'
 
       - name: Hunt public website buyer-intent signals
         shell: bash
@@ -61,33 +61,5 @@ jobs:
           set -euo pipefail
           curl --fail-with-body --silent --show-error --retry 2 --retry-delay 2 --connect-timeout 10 --max-time 90 \
             -X POST "${APP_URL%/}/api/website/hunt" \
-            -H "content-type: application/json" \
-            -H "x-agent-heartbeat-secret: ${HEARTBEAT_SECRET}"
-
-      - name: Hunt public Facebook/community signals
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 2 --connect-timeout 10 --max-time 90 \
-            -X POST "${APP_URL%/}/api/facebook/hunt" \
             -H "authorization: Bearer ${HEARTBEAT_SECRET}" \
-            -H "content-type: application/json" \
-            --data '{}'
-
-      - name: Refresh website catalog
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 2 --connect-timeout 10 --max-time 60 \
-            -X GET "${APP_URL%/}/api/website/refresh" \
-            -H "authorization: Bearer ${HEARTBEAT_SECRET}"
-
-      - name: Facebook outreach publisher
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 2 --connect-timeout 10 --max-time 60 \
-            -X POST "${APP_URL%/}/api/facebook/publish" \
-            -H "authorization: Bearer ${HEARTBEAT_SECRET}" \
-            -H "content-type: application/json" \
-            --data '{}'
+            -H "content-type: application/json"
