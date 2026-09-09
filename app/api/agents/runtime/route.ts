@@ -9,9 +9,11 @@ const PRIMARY: RuntimeAgentId[] = ["salesbot", "marketing"];
 const HEARTBEAT_MAX_AGE_MS = 10 * 60 * 1000;
 
 function authorized(request: NextRequest) {
-  const expected = process.env.AGENT_HEARTBEAT_SECRET;
-  const supplied = request.headers.get("x-agent-heartbeat-secret");
-  return Boolean(expected && supplied && supplied === expected);
+  const expected = process.env.AGENT_HEARTBEAT_SECRET?.trim();
+  const legacy = request.headers.get("x-agent-heartbeat-secret")?.trim();
+  const authorization = request.headers.get("authorization")?.trim() || "";
+  const bearer = authorization.toLowerCase().startsWith("bearer ") ? authorization.slice(7).trim() : "";
+  return Boolean(expected && (legacy === expected || bearer === expected));
 }
 
 export async function GET() {
