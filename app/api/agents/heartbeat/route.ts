@@ -8,6 +8,14 @@ const PRIMARY = new Set(["salesbot", "marketing"]);
 
 type DbError = { message?: string; details?: string; hint?: string; code?: string };
 
+function authorized(request: NextRequest) {
+  const expected = process.env.AGENT_HEARTBEAT_SECRET?.trim();
+  const legacy = request.headers.get("x-agent-heartbeat-secret")?.trim();
+  const authorization = request.headers.get("authorization")?.trim() || "";
+  const bearer = authorization.toLowerCase().startsWith("bearer ") ? authorization.slice(7).trim() : "";
+  return Boolean(expected && (legacy === expected || bearer === expected));
+}
+
 export async function GET() {
   const configured = Boolean(
     (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) &&
@@ -28,12 +36,11 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const suppliedSecret = request.headers.get("x-agent-heartbeat-secret");
-    const expectedSecret = process.env.AGENT_HEARTBEAT_SECRET;
-    if (!expectedSecret || suppliedSecret !== expectedSecret) {
+    if (!authorized(request)) {
       console.warn("[agent-heartbeat] unauthorized", {
-        hasSecret: Boolean(suppliedSecret),
-        hasExpectedSecret: Boolean(expectedSecret),
+        hasLegacySecret: Boolean(request.headers.get("x-agent-heartbeat-secret")),
+        hasAuthorization: Boolean(request.headers.get("authorization")),
+        hasExpectedSecret: Boolean(process.env.AGENT_HEARTBEAT_SECRET),
       });
       return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
     }
