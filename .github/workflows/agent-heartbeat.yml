@@ -33,6 +33,7 @@ jobs:
             -X POST "${APP_URL%/}/api/agents/heartbeat" \
             -H "content-type: application/json" \
             -H "authorization: Bearer ${HEARTBEAT_SECRET}" \
+            -H "x-agent-heartbeat-secret: ${HEARTBEAT_SECRET}" \
             --data '{"agentId":"salesbot"}'
 
       - name: Heartbeat Marketing
@@ -43,6 +44,7 @@ jobs:
             -X POST "${APP_URL%/}/api/agents/heartbeat" \
             -H "content-type: application/json" \
             -H "authorization: Bearer ${HEARTBEAT_SECRET}" \
+            -H "x-agent-heartbeat-secret: ${HEARTBEAT_SECRET}" \
             --data '{"agentId":"marketing"}'
 
       - name: Run AI Website only
@@ -53,6 +55,7 @@ jobs:
             -X POST "${APP_URL%/}/api/agents/runtime" \
             -H "content-type: application/json" \
             -H "authorization: Bearer ${HEARTBEAT_SECRET}" \
+            -H "x-agent-heartbeat-secret: ${HEARTBEAT_SECRET}" \
             --data '{"agentId":"salesbot"}'
 
       - name: Hunt public website buyer-intent signals
@@ -61,5 +64,6 @@ jobs:
           set -euo pipefail
           curl --fail-with-body --silent --show-error --retry 2 --retry-delay 2 --connect-timeout 10 --max-time 90 \
             -X POST "${APP_URL%/}/api/website/hunt" \
+            -H "content-type: application/json" \
             -H "authorization: Bearer ${HEARTBEAT_SECRET}" \
-            -H "content-type: application/json"
+            -H "x-agent-heartbeat-secret: ${HEARTBEAT_SECRET}"
