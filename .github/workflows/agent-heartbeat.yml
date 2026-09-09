@@ -55,6 +55,15 @@ jobs:
             -H "x-agent-heartbeat-secret: ${HEARTBEAT_SECRET}" \
             --data '{}'
 
+      - name: Hunt public website buyer-intent signals
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 2 --connect-timeout 10 --max-time 90 \
+            -X POST "${APP_URL%/}/api/website/hunt" \
+            -H "content-type: application/json" \
+            -H "x-agent-heartbeat-secret: ${HEARTBEAT_SECRET}"
+
       - name: Refresh website catalog
         shell: bash
         run: |
