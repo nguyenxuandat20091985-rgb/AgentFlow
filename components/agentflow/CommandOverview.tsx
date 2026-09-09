@@ -138,63 +138,14 @@ export default function CommandOverview() {
   };
 
   const fallbackAgents: CockpitAgent[] = [
-    {
-      id: "ceo",
-      name: "AI CEO",
-      status: "orchestrator",
-      channel: "ceo",
-      pendingActions: 0,
-      kpiTarget: null,
-      kpiActual: 0,
-      kpiProgress: 0,
-      role: "Điều phối",
-      runtimeEnabled: false,
-    },
-    {
-      id: "salesbot",
-      name: "SalesBot",
-      status: "stopped",
-      channel: "website",
-      pendingActions: 0,
-      kpiTarget: 15_000_000,
-      kpiActual: 0,
-      kpiProgress: 0,
-      role: "AI Website",
-      runtimeEnabled: true,
-    },
-    {
-      id: "marketing",
-      name: "Marketing",
-      status: "stopped",
-      channel: "facebook",
-      pendingActions: 0,
-      kpiTarget: 15_000_000,
-      kpiActual: 0,
-      kpiProgress: 0,
-      role: "AI Facebook",
-      runtimeEnabled: true,
-    },
+    { id: "ceo", name: "AI CEO", status: "orchestrator", channel: "ceo", pendingActions: 0, kpiTarget: null, kpiActual: 0, kpiProgress: 0, role: "Điều phối", runtimeEnabled: false },
+    { id: "salesbot", name: "SalesBot", status: "stopped", channel: "website", pendingActions: 0, kpiTarget: 15_000_000, kpiActual: 0, kpiProgress: 0, role: "AI Website", runtimeEnabled: true },
+    { id: "marketing", name: "Marketing", status: "stopped", channel: "facebook", pendingActions: 0, kpiTarget: 15_000_000, kpiActual: 0, kpiProgress: 0, role: "AI Facebook", runtimeEnabled: true },
   ];
 
   const fallbackKpis: KPI[] = [
-    {
-      agentId: "salesbot",
-      name: "SalesBot",
-      target: 15_000_000,
-      actual: 0,
-      remaining: 15_000_000,
-      progress: 0,
-      transactions: 0,
-    },
-    {
-      agentId: "marketing",
-      name: "Marketing",
-      target: 15_000_000,
-      actual: 0,
-      remaining: 15_000_000,
-      progress: 0,
-      transactions:: 0,
-    },
+    { agentId: "salesbot", name: "SalesBot", target: 15_000_000, actual: 0, remaining: 15_000_000, progress: 0, transactions: 0 },
+    { agentId: "marketing", name: "Marketing", target: 15_000_000, actual: 0, remaining: 15_000_000, progress: 0, transactions: 0 },
   ];
 
   return (
@@ -288,9 +239,7 @@ export default function CommandOverview() {
                 <article key={k.agentId} className={styles.kpiCard}>
                   <div className={styles.kpiTop}>
                     <h3>{k.name}</h3>
-                    <span className={k.progress > 0 ? styles.pillLive : styles.pillMuted}>
-                      {Math.round(k.progress)}%
-                    </span>
+                    <span className={k.progress > 0 ? styles.pillLive : styles.pillMuted}>{Math.round(k.progress)}%</span>
                   </div>
                   <p className={styles.kpiValue}>{money(k.actual)}</p>
                   <p className={styles.kpiTarget}>/ {money(k.target)}</p>
@@ -328,11 +277,9 @@ export default function CommandOverview() {
               ))}
             </div>
             <p className={styles.note}>
-              Website {cockpit?.channels?.website?.live ? "live" : "—"}
-              {" · "}
-              Facebook {cockpit?.channels?.facebook?.live ? "live" : "—"}
-              {" · "}
-              Tier A auto {cockpit?.channels?.website?.autoPublishTierA ? "ON" : "OFF"}
+              Website {cockpit?.channels?.website?.live ? "live" : "—"} · Facebook{" "}
+              {cockpit?.channels?.facebook?.live ? "live" : "—"} · Tier A auto{" "}
+              {cockpit?.channels?.website?.autoPublishTierA ? "ON" : "OFF"}
             </p>
           </div>
         </section>
@@ -393,8 +340,7 @@ export default function CommandOverview() {
 
         {(cockpit?.ownerBrief || cockpit?.latestCeoOutreachReport) && (
           <section className={styles.panel}>
-            <button type="button" className={styles.briefToggle} onClick={() => setShow              setShowBrief((v) => !v)
-            }}>
+            <button type="button" className={styles.briefToggle} onClick={() => setShowBrief((v) => !v)}>
               <span>Báo cáo chi tiết cho anh</span>
               <span>{showBrief ? "Thu gọn" : "Xem"}</span>
             </button>
