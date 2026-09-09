@@ -1,4 +1,8 @@
-import { fetchAccessTradeDatafeeds, rankAffiliateOpportunities } from "@/lib/accesstrade";
+import {
+  fetchAccessTradeDatafeeds,
+  rankAffiliateOpportunities,
+  type AccessTradeFeedItem,
+} from "@/lib/accesstrade";
 import { discoverWebsiteSignals, type WebsiteSignal } from "@/lib/website-hunter";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { loadDestinations, OUTREACH_RULES, type OutreachDestination } from "./policy";
@@ -63,7 +67,7 @@ export async function runWebsiteOutreachPlanner(options?: {
     }
   }
 
-  let products = [];
+  let products: AccessTradeFeedItem[] = [];
   try {
     products = rankAffiliateOpportunities(await fetchAccessTradeDatafeeds({ limit: 40 })).slice(0, 20);
   } catch (error) {
