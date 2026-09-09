@@ -2,6 +2,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { executeAgent } from "@/lib/agent-engine";
 import { fetchAccessTradeDatafeeds, rankAffiliateOpportunities, type AccessTradeFeedItem } from "@/lib/accesstrade";
 import { discoverWebsiteSignals, type WebsiteSignal } from "@/lib/website-hunter";
+import { discoverFacebookSignals, type FacebookSignal } from "@/lib/facebook-hunter";
 
 export const PRIMARY_RUNTIME_TASKS = {
   salesbot: {
@@ -12,7 +13,7 @@ export const PRIMARY_RUNTIME_TASKS = {
   marketing: {
     name: "Marketing — Facebook Growth Agent",
     channel: "facebook",
-    goal: "Operate the Nhà Bếp Thông Minh Facebook growth pipeline: analyze real affiliate opportunities and active campaigns, prepare approved social content and distribution plans, and improve qualified traffic into the storefront. Never fabricate traffic, leads, sales, payments, or revenue.",
+    goal: "Operate the Nhà Bếp Thông Minh Facebook growth pipeline: analyze real affiliate opportunities and active campaigns, discover public buying-intent signals, prepare useful Fanpage content and compliant outbound advice, and improve qualified traffic into the storefront. Never fabricate traffic, leads, sales, payments, or revenue.",
   },
 } as const;
 
@@ -33,7 +34,7 @@ type QueueRow = {
   payload: Record<string, unknown>;
 };
 
-function buildDeterministicQueue(agentId: RuntimeAgentId, deals: DealRow[], affiliateOrders: AffiliateRow[], opportunities: AccessTradeFeedItem[], signals: WebsiteSignal[] = []) {
+function buildDeterministicQueue(agentId: RuntimeAgentId, deals: DealRow[], affiliateOrders: AffiliateRow[], opportunities: AccessTradeFeedItem[], signals: WebsiteSignal[] = [], facebookSignals: FacebookSignal[] = []) {
   const queue: Array<Record<string, unknown>> = [];
   const ranked = rankAffiliateOpportunities(opportunities).slice(0, 10);
 
@@ -55,6 +56,19 @@ function buildDeterministicQueue(agentId: RuntimeAgentId, deals: DealRow[], affi
     ranked.slice(0, 8).forEach((item) => queue.push({ type: "website_affiliate_merchandising_draft", priority: Number(item.opportunity_score ?? 0) >= 25 ? "high" : "medium", productId: item.product_id ?? null, name: item.name ?? null, category: item.category ?? null, price: item.price ?? null, discountRate: item.discount_rate ?? null, image: item.image ?? null, affiliateLink: item.aff_link ?? null, opportunityScore: item.opportunity_score ?? null, channel: "website", execution: "draft_only" }));
     ranked.slice(0, 3).forEach((item) => queue.push({ type: "website_seo_content_brief", priority: "medium", productId: item.product_id ?? null, name: item.name ?? null, category: item.category ?? null, channel: "website", execution: "draft_only", brief: "Create useful buyer-first content with comparison points, FAQ and a clear affiliate CTA using only provider-supplied facts." }));
   } else {
+    facebookSignals.slice(0, 8).forEach((signal) => queue.push({
+      type: "facebook_outbound_advice_draft",
+      priority: signal.intent_score >= 60 ? "high" : "medium",
+      sourceId: signal.external_id,
+      sourceType: "facebook_public_signal",
+      sourceUrl: signal.source_url,
+      title: signal.title,
+      intentScore: signal.intent_score,
+      matchedTerms: signal.matched_terms,
+      channel: "facebook",
+      execution: "approval_only",
+      guidance: "Answer the customer's question first. Keep product/affiliate guidance contextual and limited; never mass-comment, impersonate, or bypass platform/group permissions.",
+    }));
     deals.filter((d) => ["open", "active", "pending"].includes(String(d.status ?? "").toLowerCase())).slice(0, 8).forEach((deal) => queue.push({ type: "facebook_campaign_content_draft", priority: "high", sourceId: deal.id ?? null, title: deal.deal_title ?? "Active opportunity", channel: "facebook", execution: "draft_only" }));
     affiliateOrders.filter((o) => ["pending", "open", "processing"].includes(String(o.status ?? "").toLowerCase())).slice(0, 5).forEach((order) => queue.push({ type: "facebook_affiliate_content_draft", priority: "medium", sourceId: order.id ?? null, platform: order.platform ?? null, channel: "facebook", execution: "draft_only" }));
     ranked.slice(0, 8).forEach((item) => queue.push({ type: "facebook_affiliate_campaign_draft", priority: "high", productId: item.product_id ?? null, name: item.name ?? null, campaign: item.campaign ?? null, affiliateLink: item.aff_link ?? null, opportunityScore: item.opportunity_score ?? null, channel: "facebook", execution: "draft_only" }));
@@ -74,7 +88,7 @@ async function persistActionQueue(agentId: RuntimeAgentId, actionQueue: Array<Re
       channel: String(action.channel ?? PRIMARY_RUNTIME_TASKS[agentId].channel),
       status: "pending",
       priority: action.priority === "high" ? "high" : action.priority === "low" ? "low" : "medium",
-      source_type: productId ? "affiliate_product" : sourceId ? "website_signal_or_record" : "runtime",
+      source_type: productId ? "affiliate_product" : sourceId ? (action.sourceType === "facebook_public_signal" ? "facebook_public_signal" : "website_signal_or_record") : "runtime",
       source_id: sourceId || null,
       dedupe_key: `${agentId}:${type}:${sourceId}:${productId}`,
       payload: action,
@@ -116,8 +130,17 @@ async function buildRuntimeSnapshot(agentId: RuntimeAgentId) {
     }
   }
 
+  let facebookSignals: FacebookSignal[] = [];
+  if (agentId === "marketing") {
+    try {
+      facebookSignals = await discoverFacebookSignals(40);
+    } catch (error) {
+      console.warn("[agent-runtime] Facebook signal discovery unavailable", { message: error instanceof Error ? error.message : String(error) });
+    }
+  }
+
   const agentRevenue = (ledger ?? []).filter((row) => String(row.agent_id ?? "").toLowerCase() === agentId).reduce((sum, row) => sum + Number(row.amount ?? 0), 0);
-  const actionQueue = buildDeterministicQueue(agentId, deals ?? [], affiliateOrders ?? [], affiliateOpportunities, websiteSignals);
+  const actionQueue = buildDeterministicQueue(agentId, deals ?? [], affiliateOrders ?? [], affiliateOpportunities, websiteSignals, facebookSignals);
 
   return {
     asOf: new Date().toISOString(),
@@ -128,13 +151,16 @@ async function buildRuntimeSnapshot(agentId: RuntimeAgentId) {
     affiliateOrders: (affiliateOrders ?? []).slice(0, 25),
     affiliateOpportunities: affiliateOpportunities.slice(0, 20),
     websiteSignals: websiteSignals.slice(0, 20),
+    facebookSignals: facebookSignals.slice(0, 20),
     verifiedRevenueRows: (ledger ?? []).filter((row) => String(row.agent_id ?? "").toLowerCase() === agentId).slice(0, 25),
     actionQueue,
     rules: [
       "Only verified PayOS/revenue_ledger amounts count as revenue.",
       "Website signal discovery reads public feeds only; it does not log in, bypass access controls, or scrape private areas.",
+      "Facebook signal discovery uses public, provider-approved feeds only; it does not log in, scrape private groups, harvest private user data, or bypass Meta access controls.",
       "Runtime is planning/orchestration only: never create payments, orders, commissions, or revenue.",
       "Website AI may prepare merchandising, SEO and CTA drafts; external publication remains controlled by an authorized provider workflow.",
+      "Facebook AI may publish only through the configured Page access token and authorized Page workflow; outbound community replies remain approval-only.",
       "Affiliate links must use provider-generated links; never fabricate tracking parameters.",
       "Never claim an action was sent, published, converted, or paid unless a provider/database confirmation exists.",
     ],
@@ -157,5 +183,5 @@ export async function runPrimaryAgent(agentId: RuntimeAgentId) {
     console.error("[agent-runtime] failed to persist task run", { agentId, error: error instanceof Error ? error.message : String(error) });
   }
 
-  return { ...result, snapshot: { kpi: snapshot.kpi, actionQueue: snapshot.actionQueue, persistedQueueCount, commerceDeals: snapshot.commerceDeals.length, affiliateOrders: snapshot.affiliateOrders.length, affiliateOpportunities: snapshot.affiliateOpportunities.length, websiteSignals: snapshot.websiteSignals.length, channel: snapshot.channel } };
+  return { ...result, snapshot: { kpi: snapshot.kpi, actionQueue: snapshot.actionQueue, persistedQueueCount, commerceDeals: snapshot.commerceDeals.length, affiliateOrders: snapshot.affiliateOrders.length, affiliateOpportunities: snapshot.affiliateOpportunities.length, websiteSignals: snapshot.websiteSignals.length, facebookSignals: snapshot.facebookSignals.length, channel: snapshot.channel } };
 }

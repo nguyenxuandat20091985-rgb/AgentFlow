@@ -6,6 +6,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const autoPublishEnabled = () => process.env.FACEBOOK_AUTOPUBLISH_ENABLED !== "false";
+const dailyLimit = () => Math.max(1, Math.min(10, Number(process.env.FACEBOOK_DAILY_POST_LIMIT || 5)));
 
 function authorized(request: NextRequest) {
   const expected = process.env.AGENT_HEARTBEAT_SECRET;
@@ -21,25 +22,27 @@ function composePost(payload: Record<string, unknown>) {
   const priceText = price > 0 ? ` Giá tham khảo: ${price.toLocaleString("vi-VN")} ₫.` : "";
   const score = Number(payload.opportunityScore || 0);
   const hook = score >= 25 ? "Deal đang được AI ưu tiên theo tín hiệu cơ hội." : "Một lựa chọn đáng xem trong nhóm sản phẩm hôm nay.";
+  const suppliedContent = typeof payload.content === "string" ? payload.content.trim() : "";
+  if (suppliedContent.length >= 40) return suppliedContent.slice(0, 5000);
   return `🍳 Nhà Bếp Thông Minh | ${name}\n\n${hook} Nhóm: ${category}.${priceText}\n\nXem thông tin và ưu đãi trên website Nhà Bếp Thông Minh. Link sản phẩm được cung cấp từ hệ thống affiliate và chỉ dùng dữ liệu thực tế.\n\n#NhaBepThongMinh #DealGiaDung #Affiliate`;
 }
 
 export async function GET(request: NextRequest) {
   if (!authorized(request)) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
-  return NextResponse.json({ ok: true, configured: facebookPublishingConfigured(), mode: autoPublishEnabled() ? "auto" : "approval" });
+  return NextResponse.json({ ok: true, configured: facebookPublishingConfigured(), mode: autoPublishEnabled() ? "auto" : "approval", dailyLimit: dailyLimit() });
 }
 
 export async function POST(request: NextRequest) {
   if (!authorized(request)) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
-
-  if (!autoPublishEnabled()) {
-    return NextResponse.json({ ok: true, status: "skipped", reason: "facebook_auto_publish_disabled", configured: facebookPublishingConfigured() });
-  }
-  if (!facebookPublishingConfigured()) {
-    return NextResponse.json({ ok: true, status: "skipped", reason: "facebook_token_not_configured" });
-  }
+  if (!autoPublishEnabled()) return NextResponse.json({ ok: true, status: "skipped", reason: "facebook_auto_publish_disabled", configured: facebookPublishingConfigured() });
+  if (!facebookPublishingConfigured()) return NextResponse.json({ ok: true, status: "skipped", reason: "facebook_token_not_configured" });
 
   try {
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    const events = await supabaseAdmin<any[]>(`facebook_activity_events?select=id&event_type=eq.page_post&status=eq.confirmed&created_at=gte.${encodeURIComponent(today.toISOString())}&limit=20`);
+    if ((events ?? []).length >= dailyLimit()) return NextResponse.json({ ok: true, status: "daily_cap_reached", publishedToday: (events ?? []).length, dailyLimit: dailyLimit() });
+
     const rows = await supabaseAdmin<Array<{ id: string; payload: Record<string, unknown>; source_id?: string | null }>>(
       "agent_action_queue?select=id,payload,source_id&agent_id=eq.marketing&channel=eq.facebook&status=eq.pending&action_type=in.(facebook_affiliate_campaign_draft,facebook_campaign_content_draft,facebook_affiliate_content_draft)&order=priority.desc,created_at.asc&limit=1"
     );
@@ -50,13 +53,14 @@ export async function POST(request: NextRequest) {
     const link = typeof payload.affiliateLink === "string" && payload.affiliateLink.startsWith("http") ? payload.affiliateLink : null;
     const message = composePost(payload);
     const published = await publishFacebookPagePost(message, link);
+    const publishedAt = new Date().toISOString();
 
-    await supabaseAdmin(
-      `agent_action_queue?id=eq.${encodeURIComponent(action.id)}`,
-      { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ status: "executed", updated_at: new Date().toISOString(), payload: { ...payload, facebookPostId: published.id, publishedAt: new Date().toISOString() } }) }
-    );
+    await Promise.all([
+      supabaseAdmin(`agent_action_queue?id=eq.${encodeURIComponent(action.id)}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ status: "executed", updated_at: publishedAt, payload: { ...payload, facebookPostId: published.id, publishedAt, execution: "provider_confirmed" } }) }),
+      supabaseAdmin("facebook_activity_events", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ event_type: "page_post", status: "confirmed", external_id: published.id, source_id: action.id, payload: { pageId: published.pageId, pageName: published.pageName, messageLength: message.length } }) }),
+    ]);
 
-    return NextResponse.json({ ok: true, status: "published", agentId: "marketing", actionId: action.id, facebookPostId: published.id, pageName: published.pageName });
+    return NextResponse.json({ ok: true, status: "published", agentId: "marketing", actionId: action.id, facebookPostId: published.id, pageName: published.pageName, publishedAt });
   } catch (error) {
     console.error("[facebook-publish]", error);
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : "facebook_publish_failed" }, { status: 502 });
