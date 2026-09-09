@@ -20,10 +20,16 @@ export type WebsiteOutreachResult = {
   persistedQueueCount: number;
   drafts: OutreachDraft[];
   rules: readonly string[];
+  persistError?: string | null;
 };
 
-async function persistOutreachQueue(drafts: OutreachDraft[]) {
-  if (!drafts.length) return 0;
+function dayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+async function persistOutreachQueue(drafts: OutreachDraft[]): Promise<{ count: number; error?: string }> {
+  if (!drafts.length) return { count: 0 };
+  const day = dayKey();
   const rows = drafts.map((d) => ({
     agent_id: "salesbot",
     action_type: d.type,
@@ -32,22 +38,57 @@ async function persistOutreachQueue(drafts: OutreachDraft[]) {
     priority: d.priority,
     source_type: d.sourceType,
     source_id: d.sourceId,
-    dedupe_key: `salesbot:${d.type}:${d.destinationId}:${d.sourceId}:${d.productId ?? ""}`,
+    // day bucket so each day can re-queue; upsert refreshes payload
+    dedupe_key: `salesbot:${d.type}:${d.destinationId}:${d.sourceId}:${day}`,
     payload: d,
   }));
+
   try {
+    // Upsert: insert or merge on dedupe_key so status returns to pending with fresh payload
     const result = await supabaseAdmin<unknown[]>("agent_action_queue?on_conflict=dedupe_key", {
       method: "POST",
-      headers: { Prefer: "return=representation,resolution=ignore-duplicates" },
+      headers: { Prefer: "return=representation,resolution=merge-duplicates" },
       body: JSON.stringify(rows),
     });
-    return Array.isArray(result) ? result.length : 0;
+    if (Array.isArray(result) && result.length) {
+      return { count: result.length };
+    }
   } catch (error) {
-    console.error("[website-outreach] persist queue failed", {
-      error: error instanceof Error ? error.message : String(error),
-    });
-    return 0;
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("[website-outreach] upsert failed", { error: msg });
+    // fallback: try plain insert ignore-duplicates
+    try {
+      const result = await supabaseAdmin<unknown[]>("agent_action_queue?on_conflict=dedupe_key", {
+        method: "POST",
+        headers: { Prefer: "return=representation,resolution=ignore-duplicates" },
+        body: JSON.stringify(rows),
+      });
+      if (Array.isArray(result) && result.length) return { count: result.length };
+    } catch (error2) {
+      return { count: 0, error: error2 instanceof Error ? error2.message : String(error2) };
+    }
+    return { count: 0, error: msg };
   }
+
+  // If merge returned empty, force pending for today's keys
+  let forced = 0;
+  for (const row of rows) {
+    try {
+      await supabaseAdmin(`agent_action_queue?dedupe_key=eq.${encodeURIComponent(row.dedupe_key)}`, {
+        method: "PATCH",
+        headers: { Prefer: "return=minimal" },
+        body: JSON.stringify({
+          status: "pending",
+          priority: row.priority,
+          payload: row.payload,
+        }),
+      });
+      forced += 1;
+    } catch {
+      // continue
+    }
+  }
+  return { count: forced };
 }
 
 export async function runWebsiteOutreachPlanner(options?: {
@@ -79,7 +120,13 @@ export async function runWebsiteOutreachPlanner(options?: {
 
   const drafts = buildOutreachDrafts({ destinations, signals, products });
   const persist = options?.persist !== false;
-  const persistedQueueCount = persist ? await persistOutreachQueue(drafts) : 0;
+  let persistedQueueCount = 0;
+  let persistError: string | null = null;
+  if (persist) {
+    const r = await persistOutreachQueue(drafts);
+    persistedQueueCount = r.count;
+    persistError = r.error ?? null;
+  }
 
   return {
     ok: true,
@@ -99,6 +146,7 @@ export async function runWebsiteOutreachPlanner(options?: {
     persistedQueueCount,
     drafts: drafts.slice(0, 30),
     rules: OUTREACH_RULES,
+    persistError,
   };
 }
 
