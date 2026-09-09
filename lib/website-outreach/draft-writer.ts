@@ -47,18 +47,31 @@ function formatPrice(item: AccessTradeFeedItem): string {
   return new Intl.NumberFormat("vi-VN").format(price) + "₫";
 }
 
+function audienceLine(product: AccessTradeFeedItem): string {
+  const name = String(product.name ?? "").toLowerCase();
+  const cat = String(product.category ?? "").toLowerCase();
+  const blob = `${name} ${cat}`;
+  if (/toc|gôm|gom|say toc|sấy|rua mat|rửa mặt|cao rau|cạo râu|my pham|mỹ phẩm|skin|men/.test(blob)) {
+    return "- Nam giới / người dùng quan tâm chăm sóc cá nhân, tóc & da mặt";
+  }
+  if (/bep|nồi|noi|bếp|lau nha|gia dung|nhà bếp/.test(blob)) {
+    return "- Gia đình cần đồ gia dụng bền, dễ vệ sinh";
+  }
+  return "- Người mua đang tìm deal / hoàn tiền affiliate uy tín";
+}
+
 function buildReplyBody(signal: WebsiteSignal, product: AccessTradeFeedItem | null): string {
   const lines: string[] = [];
   lines.push(`Về câu hỏi: "${signal.title.slice(0, 120)}"`);
   lines.push("");
   lines.push(
-    "Mình trả lời theo hướng thực dụng: nên chọn theo nhu cầu sử dụng (dung tích / công suất / dễ vệ sinh), ngân sách, và chính sách bảo hành/đổi trả của nhà bán.",
+    "Trả lời thực dụng: chọn theo nhu cầu thật, ngân sách, và chính sách bảo hành/đổi trả của nhà bán.",
   );
   lines.push("");
   if (product?.name) {
     const price = formatPrice(product);
     lines.push(
-      `Nếu đang cân nhắc phân khúc gia dụng, một lựa chọn đang có deal là **${product.name}**${price ? ` (khoảng ${price})` : ""}.`,
+      `Một lựa chọn đang có trên kênh affiliate: **${product.name}**${price ? ` (khoảng ${price})` : ""}.`,
     );
     if (product.desc) {
       lines.push(String(product.desc).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 280));
@@ -68,35 +81,36 @@ function buildReplyBody(signal: WebsiteSignal, product: AccessTradeFeedItem | nu
       lines.push(`Link tham khảo (affiliate): ${product.aff_link}`);
     }
   } else {
-    lines.push("Hiện chưa khớp sản phẩm affiliate cụ thể — nên so sánh 2–3 model cùng phân khúc trước khi chốt.");
+    lines.push("Chưa khớp sản phẩm cụ thể — nên so sánh 2–3 model cùng phân khúc trước khi chốt.");
   }
   lines.push("");
-  lines.push("Lưu ý: đây là gợi ý thông tin, không phải spam. Hãy tự kiểm tra rule cộng đồng trước khi đăng.");
+  lines.push("Lưu ý: gợi ý thông tin, không spam. Kiểm tra rule cộng đồng trước khi đăng.");
   return lines.join("\n");
 }
 
 function buildSeoBody(product: AccessTradeFeedItem): string {
   const price = formatPrice(product);
-  const name = String(product.name ?? "Sản phẩm gia dụng");
+  const name = String(product.name ?? "Sản phẩm");
+  const desc = product.desc
+    ? String(product.desc).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 420)
+    : "";
   return [
     `# ${name}${price ? ` — giá khoảng ${price}` : ""}`,
     "",
     "## Phù hợp với ai",
-    "- Gia đình cần đồ gia dụng bền, dễ vệ sinh",
+    audienceLine(product),
     "- Người mua quan tâm deal / hoàn tiền affiliate uy tín",
     "",
     "## Điểm cần xem trước khi mua",
-    "1. Công suất / dung tích theo nhu cầu thực tế",
+    "1. Thông số / dung tích / công suất theo nhu cầu",
     "2. Chính sách bảo hành và đổi trả",
     "3. Đánh giá gần đây từ người dùng thật",
     "",
-    product.desc
-      ? String(product.desc).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 400)
-      : "",
+    desc,
     "",
     product.aff_link ? `CTA affiliate: ${product.aff_link}` : "CTA: cập nhật link AccessTrade khi có.",
     "",
-    "*Nội dung do AI Website soạn dạng draft — chưa publish.*",
+    "*Nội dung do AI Website soạn — đăng trên kênh sở hữu sau khi AI CEO duyệt.*",
   ]
     .filter(Boolean)
     .join("\n");
@@ -158,7 +172,7 @@ export function buildOutreachDrafts(options: {
           sourceId: String(product.product_id ?? product.sku ?? product.name),
           sourceType: "affiliate_product",
           sourceUrl: product.url ? String(product.url) : null,
-          title: `Content draft: ${String(product.name).slice(0, 120)}`,
+          title: String(product.name).slice(0, 120),
           body: buildSeoBody(product),
           productId: product.product_id != null ? String(product.product_id) : null,
           productName: String(product.name),

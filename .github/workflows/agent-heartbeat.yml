@@ -10,7 +10,7 @@ permissions: {}
 jobs:
   automation:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     env:
       APP_URL: ${{ vars.AGENTFLOW_APP_URL }}
       HEARTBEAT_SECRET: ${{ secrets.AGENT_HEARTBEAT_SECRET }}
@@ -46,18 +46,20 @@ jobs:
             -H "x-agent-heartbeat-secret: ${HEARTBEAT_SECRET}" \
             --data '{"agentId":"marketing"}'
 
-      - name: Run AI Website only
+      - name: Run AI Website runtime (LLM optional — non-blocking)
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 2 --connect-timeout 10 --max-time 120 \
+          curl --fail-with-body --silent --show-error --retry 1 --retry-delay 2 --connect-timeout 10 --max-time 90 \
             -X POST "${APP_URL%/}/api/agents/runtime" \
             -H "content-type: application/json" \
             -H "authorization: Bearer ${HEARTBEAT_SECRET}" \
             -H "x-agent-heartbeat-secret: ${HEARTBEAT_SECRET}" \
-            --data '{"agentId":"salesbot"}'
+            --data '{"agentId":"salesbot"}' || echo "runtime soft-fail (rate limit / LLM)"
 
       - name: Hunt public website buyer-intent signals
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
@@ -77,15 +79,25 @@ jobs:
             -H "authorization: Bearer ${HEARTBEAT_SECRET}" \
             -H "x-agent-heartbeat-secret: ${HEARTBEAT_SECRET}"
 
-      - name: AI CEO review + Tier A autopublish + owner report
+      - name: AI CEO website cycle (review + Tier A publish)
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 2 --connect-timeout 10 --max-time 180 \
-            -X POST "${APP_URL%/}/api/ceo/outreach-review" \
+          code=$(curl --silent --show-error --retry 2 --retry-delay 2 --connect-timeout 10 --max-time 180 \
+            -o /tmp/ceo-cycle.json -w "%{http_code}" \
+            -X POST "${APP_URL%/}/api/ceo/website-cycle" \
             -H "content-type: application/json" \
             -H "authorization: Bearer ${HEARTBEAT_SECRET}" \
-            -H "x-agent-heartbeat-secret: ${HEARTBEAT_SECRET}"
+            -H "x-agent-heartbeat-secret: ${HEARTBEAT_SECRET}" || true)
+          cat /tmp/ceo-cycle.json || true
+          if [[ "$code" != "200" ]]; then
+            echo "website-cycle returned $code — fallback outreach-review"
+            curl --fail-with-body --silent --show-error --retry 2 --retry-delay 2 --connect-timeout 10 --max-time 180 \
+              -X POST "${APP_URL%/}/api/ceo/outreach-review" \
+              -H "content-type: application/json" \
+              -H "authorization: Bearer ${HEARTBEAT_SECRET}" \
+              -H "x-agent-heartbeat-secret: ${HEARTBEAT_SECRET}"
+          fi
 
       - name: Flush remaining Tier A autopublish
         shell: bash
