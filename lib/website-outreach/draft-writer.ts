@@ -32,7 +32,7 @@ function pickProduct(products: AccessTradeFeedItem[], signal?: WebsiteSignal): A
     let s = Number((p as { opportunity_score?: number }).opportunity_score ?? 0);
     if (name && hay.includes(name.slice(0, Math.min(12, name.length)))) s += 20;
     if (cat && hay.includes(cat)) s += 10;
-    for (const of signal.matched_terms) {
+    for (const term of signal.matched_terms) {
       if (name.includes(term.toLowerCase()) || cat.includes(term.toLowerCase())) s += 8;
     }
     return { p, s };
@@ -50,10 +50,11 @@ function formatPrice(item: AccessTradeFeedItem): string {
 function audienceLine(product: AccessTradeFeedItem): string {
   const name = String(product.name ?? "").toLowerCase();
   const cat = String(product.category ?? "").toLowerCase();
-  if (/toc|gôm|gom|say toc|sấy|rua mat|rửa mặt|cao rau|cạo râu|my pham|mỹ phẩm|skin|men/.test(name + cat)) {
+  const blob = `${name} ${cat}`;
+  if (/toc|gôm|gom|say toc|sấy|rua mat|rửa mặt|cao rau|cạo râu|my pham|mỹ phẩm|skin|men/.test(blob)) {
     return "- Nam giới / người dùng quan tâm chăm sóc cá nhân, tóc & da mặt";
   }
-h  if (/bep|nồi|noi|bếp|lau nha|gia dung|nhà bếp/.test(name + cat)) {
+  if (/bep|nồi|noi|bếp|lau nha|gia dung|nhà bếp/.test(blob)) {
     return "- Gia đình cần đồ gia dụng bền, dễ vệ sinh";
   }
   return "- Người mua đang tìm deal / hoàn tiền affiliate uy tín";

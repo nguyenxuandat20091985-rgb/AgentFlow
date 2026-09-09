@@ -10,7 +10,6 @@ permissions: {}
 jobs:
   automation:
     runs-on: ubuntu-latest
-: ubuntu-latest
     timeout-minutes: 12
     env:
       APP_URL: ${{ vars.AGENTFLOW_APP_URL }}
@@ -84,7 +83,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # Prefer unified deterministic cycle (no OpenAI required)
           code=$(curl --silent --show-error --retry 2 --retry-delay 2 --connect-timeout 10 --max-time 180 \
             -o /tmp/ceo-cycle.json -w "%{http_code}" \
             -X POST "${APP_URL%/}/api/ceo/website-cycle" \
