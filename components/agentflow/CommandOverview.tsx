@@ -115,7 +115,7 @@ export default function CommandOverview() {
 
   const m = cockpit?.metrics;
   const running =
-    m?.running ?? agents.filter((a) => a.status === "running" && a.runtimeEnabled !== false).length;
+    m?.running ?? agents.filter((((a) => a.status === "running" && a.runtimeEnabled !== false).length;
   const runtimeEnabled = m?.runtimeEnabled ?? 2;
   const registryOnly = m?.registryOnly ?? 18;
   const pendingActions = m?.pendingActions ?? 0;
@@ -137,6 +137,17 @@ export default function CommandOverview() {
     if (value) window.location.href = `/chat?prompt=${encodeURIComponent(value)}`;
   };
 
+  const fallbackAgents: CockpitAgent[] = [
+    { id: "ceo", name: "AI CEO", status: "orchestrator", channel: "ceo", pendingActions: 0, kpiTarget: null, kpiActual: 0, kpiProgress: 0, role: "Điều phối", runtimeEnabled: false },
+    { id: "salesbot", name: "SalesBot", status: "stopped", channel: "website", pendingActions: 0, kpiTarget: 15_000_000, kpiActual: 0, kpiProgress: 0, role: "AI Website", runtimeEnabled: true },
+    { id: "marketing", name: "Marketing", status: "stopped", channel: "facebook", pendingActions: 0, kpiTarget: 15_000_000, kpiActual: 0, kpiProgress: 0, role: "AI Facebook", runtimeEnabled: true },
+  ];
+
+  const fallbackKpis: KPI[] = [
+    { agentId: "salesbot", name: "SalesBot", target: 15_000_000, actual: 0, remaining: 15_000_000, progress: 0, transactions: 0 },
+    { agentId: "marketing", name: "Marketing", target: 15_000_000, actual: 0, remaining: 15_000_000, progress: 0, transactions: 0 },
+  ];
+
   return (
     <div className={styles.app}>
       <aside className={styles.sidebar}>
@@ -149,7 +160,7 @@ export default function CommandOverview() {
         <div className={styles.sideLabel}>Điều hành</div>
         <nav>
           {NAV.map(([href, icon, label]) => (
-            <a key={href} className={href ===href === "/" ? styles.active : undefined} href={href}>
+            <a key={href} className={href === "/" ? styles.active : undefined} href={href}>
               <span>{icon}</span>
               {label}
             </a>
@@ -163,7 +174,6 @@ export default function CommandOverview() {
       </aside>
 
       <main className={styles.main}>
-        {/* Header */}
         <header className={styles.topBar}>
           <div>
             <p className={styles.kicker}>AI Control Center</p>
@@ -176,14 +186,11 @@ export default function CommandOverview() {
           </div>
         </header>
 
-        {/* CEO one-liner */}
         <section className={styles.briefCard}>
           <div className={styles.briefLeft}>
             <span className={styles.badgeCeo}>AI CEO</span>
             <p className={styles.briefText}>
-              {loading
-                ? "Đang tải báo cáo…"
-                : cockpit?.summary || "Chưa có dữ liệu cockpit."}
+              {loading ? "Đang tải báo cáo…" : cockpit?.summary || "Chưa có dữ liệu cockpit."}
             </p>
           </div>
           <div className={styles.briefStats}>
@@ -202,14 +209,13 @@ export default function CommandOverview() {
           </div>
         </section>
 
-        {/* Metric strip */}
         <section className={styles.metricStrip} aria-label="Chỉ số chính">
           <article className={styles.metric}>
             <span>Queue pending</span>
             <strong>{loading ? "—" : pendingActions}</strong>
           </article>
           <article className={styles.metric}>
-            <span<span>Bài Tier A</span>
+            <span>Bài Tier A</span>
             <strong>{loading ? "—" : publishedTierA}</strong>
           </article>
           <article className={styles.metric}>
@@ -222,7 +228,6 @@ export default function CommandOverview() {
           </article>
         </section>
 
-        {/* Two columns: KPI + Agents */}
         <section className={styles.twoCol}>
           <div className={styles.panel}>
             <div className={styles.panelHead}>
@@ -230,12 +235,9 @@ export default function CommandOverview() {
               <span className={styles.subtle}>Mục tiêu 30.000.000 ₫</span>
             </div>
             <div className={styles.kpiRow}>
-              {(kpis.length ? kpis : [
-                { agentId: "salesbot", name: "SalesBot", target: 15_000_000, actual: 0, remaining: 15_000_000, progress: 0, transactions: 0 },
-                { agentId: "marketing", name: "Marketing", target: 15_000_000, actual: 0, remaining: 15_000_000, progress: 0, transactions: 0 },
-              ]).map((k) => (
+              {(kpis.length ? kpis : fallbackKpis).map((k) => (
                 <article key={k.agentId} className={styles.kpiCard}>
-                  <div className={styles.kpiTop}>
+                  <div className={styles.Top}>
                     <h3>{k.name}</h3>
                     <span className={k.progress > 0 ? styles.pillLive : styles.pillMuted}>
                       {Math.round(k.progress)}%
@@ -261,18 +263,13 @@ export default function CommandOverview() {
               <span className={styles.subtle}>Cô lập channel</span>
             </div>
             <div className={styles.agentList}>
-              {(primaryAgents.length
-                ? primaryAgents
-                : [
-                    { id: "ceo", name: "AI CEO", status: "orchestrator", channel: "ceo", pendingActions: 0, kpiTarget: null, kpiActual: 0, kpiProgress: 0, role: "Điều phối", runtimeEnabled: false },
-                    { id: "salesbot", name: "SalesBot", status: "stopped", channel: "website", pendingActions: 0, kpiTarget: 15_000_000, kpiActual: 0, kpiProgress: 0, role: "AI Website", runtimeEnabled: true },
-                    { id: "marketing", name: "Marketing", status: "stopped", channel: "facebook", pendingActions: 0, kpiTarget: 15_000_000, kpiActual: 0, kpiProgress: 0, role: "AI Facebook", runtimeEnabled: true },
-                  ]
-              ).map((a) => (
+              {(primaryAgents.length ? primaryAgents : fallbackAgents).map((a) => (
                 <div key={a.id} className={styles.agentRow}>
                   <div className={styles.agentInfo}>
                     <strong>{a.name}</strong>
-                    <span>{a.role} · {a.channel}</span>
+                    <span>
+                      {a.role} · {a.channel}
+                    </span>
                   </div>
                   <div className={styles.agentRight}>
                     <span className={statusTone(a.status)}>{a.status}</span>
@@ -291,7 +288,6 @@ export default function CommandOverview() {
           </div>
         </section>
 
-        {/* Alerts compact */}
         {alerts.length > 0 && (
           <section className={styles.panel}>
             <div className={styles.panelHead}>
@@ -322,7 +318,6 @@ export default function CommandOverview() {
           </section>
         )}
 
-        {/* Command */}
         <section className={styles.commandPanel}>
           <div className={styles.panelHead}>
             <h2>Ra lệnh AI CEO</h2>
@@ -347,7 +342,6 @@ export default function CommandOverview() {
           </div>
         </section>
 
-        {/* Owner brief collapsible */}
         {(cockpit?.ownerBrief || cockpit?.latestCeoOutreachReport) && (
           <section className={styles.panel}>
             <button type="button" className={styles.briefToggle} onClick={() => setShowBrief((v) => !v)}>
@@ -366,7 +360,7 @@ export default function CommandOverview() {
         )}
       </main>
 
-      <nav className={styles.bottomNav} aria-label="Menu"">
+      <nav className={styles.bottomNav} aria-label="Menu">
         {NAV.map(([href, icon, label]) => (
           <a key={href} className={href === "/" ? styles.active : undefined} href={href}>
             <span>{icon}</span>

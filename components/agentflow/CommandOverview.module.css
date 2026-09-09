@@ -6,7 +6,6 @@
   padding-bottom:88px;
 }
 
-/* Sidebar */
 .sidebar{
   position:fixed;inset:0 auto 0 0;width:232px;
   padding:28px 14px;
@@ -58,7 +57,6 @@
 }
 .sideFoot small{display:block;color:#64748b;margin-top:4px;font-size:10px;word-break:break-all}
 
-/* Main */
 .main{
   margin-left:232px;
   max-width:1180px;
@@ -101,7 +99,6 @@
   margin-bottom:10px;
 }
 
-/* Brief */
 .briefCard{
   display:flex;justify-content:space-between;align-items:center;gap:24px;
   padding:22px 24px;
@@ -118,7 +115,7 @@
   display:flex;gap:20px;flex:none;
 }
 .briefStats div{
-  text:grid;gap:2px;text-align:center;min-width:72px;
+  display:grid;gap:2px;text-align:center;min-width:72px;
 }
 .briefStats strong{
   font-size:22px;font-weight:750;color:#fff;letter-spacing:-.03em;
@@ -126,8 +123,6 @@
 .briefStats span{
   font-size:10px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.06em;
 }
-
-/* Metrics */
 .metricStrip{
   display:grid;
   grid-template-columns:repeat(4,1fr);
@@ -149,7 +144,6 @@
 }
 .metricMoney{font-size:18px !important}
 
-/* Panels */
 .twoCol{
   display:grid;
   grid-template-columns:1.15fr .95fr;
@@ -172,7 +166,6 @@
 }
 .subtle{font-size:11px;color:#64748b;font-weight:600}
 
-/* KPI */
 .kpiRow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .kpiCard{
   padding:16px;
@@ -196,7 +189,6 @@
   margin-top:10px;font-size:11px;color:#94a3b8;
 }
 
-/* Agents */
 .agentList{display:grid;gap:8px}
 .agentRow{
   display:flex;justify-content:space-between;align-items:center;gap:12px;
@@ -212,7 +204,6 @@
 .pending{font-size:11px;color:#94a3b8}
 .note{margin:12px 0 0;font-size:11px;color:#64748b}
 
-/* Pills */
 .pillLive,.pillWarn,.pillMuted{
   display:inline-flex;align-items:center;
   border-radius:999px;padding:3px 9px;
@@ -222,7 +213,6 @@
 .pillWarn{background:rgba(245,158,11,.15);color:#fcd34d}
 .pillMuted{background:rgba(148,163,184,.12);color:#94a3b8}
 
-/* Alerts */
 .alertStack{display:grid;gap:8px}
 .alertCrit,.alertWarn,.alertInfo{
   display:flex;gap:10px;align-items:flex-start;
@@ -235,7 +225,6 @@
   flex:none;font-size:10px;text-transform:uppercase;letter-spacing:.04em;opacity:.9;
 }
 
-/* Command */
 .commandPanel{
   padding:18px 20px;
   border-radius:16px;
@@ -271,7 +260,6 @@
 }
 .chips button:hover{border-color:rgba(139,92,246,.4);color:#e9d5ff}
 
-/* Brief toggle */
 .briefToggle{
   width:100%;display:flex;justify-content:space-between;align-items:center;
   border:0;background:transparent;color:#e2e8f0;
@@ -287,7 +275,6 @@
   white-space:pre-wrap;max-height:280px;overflow:auto;
 }
 
-/* Mobile nav */
 .bottomNav{display:none}
 
 @media (max-width:1100px){
