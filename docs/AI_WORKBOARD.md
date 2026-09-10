@@ -106,3 +106,4 @@ Stop further feature work. Revert/rollback to the last known-good deployment, re
 - 2026-09-10: Website monitor isolated to `components/agentflow/AIWebsiteShortcut.tsx` + `.module.css`; monitor is read-only and fail-soft.
 - 2026-09-10: AI Website monitor reorganized into a compact five-stage workflow: signal discovery → intent analysis → content → owned Website → affiliate tracking, with Reddit/Quora/Medium/Blogger/WordPress.com/public Q&A sources and ACCESSTRADE/Shopee/Lazada targets displayed separately.
 - 2026-09-10: Isolation reaffirmed: `salesbot` remains the only Website runtime owner; no other AI activation, payment movement, or shared runtime change was introduced.
+- 2026-09-11: AI Website signal persistence hardened to be idempotent: repeated RSS items are treated as no-ops instead of failing the runtime cycle on duplicate-key constraints. Scope is limited to `lib/website-hunter.ts`; no other AI runtime or provider was changed.
