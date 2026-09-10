@@ -27,6 +27,10 @@ export type WebsiteProduct = {
   score: number;
 };
 
+const FALLBACK_CATALOG_URL =
+  process.env.WEBSITE_CATALOG_FALLBACK_URL?.trim() ||
+  "https://agentflow-l6cn1mzxt-nguyenxuandat20091985-rgbs-projects.vercel.app/api/website/catalog";
+
 function detectNetwork(value: string | null | undefined): WebsiteNetwork {
   const text = String(value || "").toLowerCase();
   if (text.includes("shopee")) return "shopee";
@@ -39,6 +43,28 @@ function dedupeKey(product: WebsiteProduct) {
     .toLowerCase()
     .replace(/[?#].*$/, "")
     .replace(/\/+$/, "");
+}
+
+async function loadFallbackCatalog(): Promise<WebsiteProduct[]> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8_000);
+  try {
+    const response = await fetch(FALLBACK_CATALOG_URL, {
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+      signal: controller.signal,
+    });
+    if (!response.ok) throw new Error(`fallback catalog ${response.status}`);
+    const body = await response.json().catch(() => null);
+    const items = Array.isArray(body?.items) ? body.items : [];
+    return items.filter((item: unknown): item is WebsiteProduct => {
+      if (!item || typeof item !== "object") return false;
+      const value = item as Partial<WebsiteProduct>;
+      return Boolean(value.id && value.title && value.url);
+    });
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function loadCatalog(): Promise<WebsiteProduct[]> {
@@ -77,13 +103,10 @@ async function loadCatalog(): Promise<WebsiteProduct[]> {
   }
 
   try {
-    // Keep this query aligned with the live commerce_deals schema.
     const deals = (await supabaseAdmin<DealRow[]>(
       "commerce_deals?select=id,deal_title,revenue,status,created_at&order=created_at.desc&limit=24"
     )) ?? [];
 
-    // commerce_deals currently has no URL/image columns, so it is not promoted to a clickable
-    // storefront product until a canonical destination exists.
     for (const deal of deals.filter((item) => String(item.status || "").toLowerCase() !== "closed")) {
       if (!deal.id || !deal.deal_title) continue;
       console.info("[website-catalog] deal available without destination", { id: deal.id });
@@ -101,7 +124,22 @@ async function loadCatalog(): Promise<WebsiteProduct[]> {
     }
   }
 
-  return [...unique.values()].sort((a, b) => b.score - a.score).slice(0, 80);
+  const liveCatalog = [...unique.values()].sort((a, b) => b.score - a.score).slice(0, 80);
+  if (liveCatalog.length > 0) return liveCatalog;
+
+  try {
+    const fallback = await loadFallbackCatalog();
+    if (fallback.length > 0) {
+      console.warn("[website-catalog] Using resilient fallback catalog", {
+        count: fallback.length,
+      });
+      return fallback.slice(0, 80);
+    }
+  } catch (error) {
+    console.error("[website-catalog] Fallback catalog unavailable", error);
+  }
+
+  return [];
 }
 
 export const getWebsiteCatalog = unstable_cache(loadCatalog, ["agentflow-website-catalog"], {
