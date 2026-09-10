@@ -82,10 +82,14 @@ Before another AI changes Website code:
 
 ### What changed
 
-- Central control-plane entry remains `https://agentflow-khaki-rho.vercel.app/`.
-- The Workflows screen now uses the AI Website monitor card as the operational shortcut instead of treating `/website` as a second control center.
-- Monitor card is isolated under `components/agentflow/AIWebsiteShortcut.tsx` + `.module.css`; it reads `/api/agents` and `/api/website/catalog` only.
-- Monitor shows Website runtime state, catalog count, 24/7 cycle label and isolation status, with explicit links back to the center and to the public storefront.
+- Central control-plane entry remains `https://agentflow-khaki-rho.vercel.app/` and is the only operations entry point.
+- The Workflows screen continues to host the isolated AI Website monitor; `/website` remains storefront-only.
+- `components/agentflow/AIWebsiteShortcut.tsx` now presents the complete AI Website workflow in one compact monitor: public signal discovery, intent analysis, content generation, owned website, and three independent affiliate targets.
+- Signal discovery sources are explicitly shown as Reddit, Quora, Medium, Blogger, WordPress.com and permitted public Q&A/forums.
+- Affiliate targets are explicitly shown as ACCESSTRADE, Shopee and Lazada.
+- Monitor displays only production status/catalog data and remains read-only; it does not create orders, payments or revenue.
+- Isolation is explicitly surfaced as `salesbot` only, with zero permission for money movement.
+- Links always return to the central control center or open the public storefront; there is no second Website control center.
 
 ### Verification target
 
@@ -93,12 +97,15 @@ Before another AI changes Website code:
 - Workflows must render without blocking the existing AgentFlow shell.
 - Monitor must remain read-only and fail soft if `/api/agents` or catalog is unavailable.
 - Existing `salesbot` / `marketing` heartbeat-runtime behavior must remain unchanged.
+- No additional AI agent is activated by this change.
 
 ### Next action
 
-Verify production deployment, then continue AI Website improvements only inside the Website ownership boundary. Do not activate additional AI agents as part of this Website change.
+Verify the deployment and production heartbeat/runtime cycle. After that, implement the Website signal adapters and affiliate-provider adapters one at a time, with provider-specific policy gates and tests.
 
 ### Known risks
 
 - External platform APIs/policies vary; discovery and publishing permissions must be handled separately.
+- Public-source discovery must respect robots/access controls and rate limits.
 - Affiliate provider credentials must stay in deployment environment variables and never be committed.
+- Publishing automation must remain allow-list based and anti-spam; discovery does not imply permission to post.
