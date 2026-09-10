@@ -3,7 +3,18 @@ import { NextRequest, NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const revalidate = 3600;
 
-const DEFAULT_ALLOWED_HOSTS = ["shopee.vn", "lazada.vn", "accesstrade.vn", "susercontent.com", "alicdn.com"];
+const DEFAULT_ALLOWED_HOSTS = [
+  "shopee.vn",
+  "lazada.vn",
+  "accesstrade.vn",
+  "susercontent.com",
+  "alicdn.com",
+  "img.lazcdn.com",
+  "lzd-img-global.slatic.net",
+  "cf.shopee.vn",
+  "down-vn.img.susercontent.com",
+  "images-na.ssl-images-amazon.com",
+];
 
 function isPrivateHost(hostname: string) {
   const host = hostname.toLowerCase().replace(/^\[|\]$/g, "");
@@ -18,7 +29,9 @@ function isAllowedHost(hostname: string) {
 
 function safeUrl(value: string) {
   try {
-    const url = new URL(value);
+    const normalized = value.trim().startsWith("//") ? `https:${value.trim()}` : value.trim();
+    const url = new URL(normalized);
+    if (url.protocol === "http:") url.protocol = "https:";
     return url.protocol === "https:" && !url.username && !url.password && !url.port && !isPrivateHost(url.hostname) && isAllowedHost(url.hostname) ? url : null;
   } catch {
     return null;
@@ -34,7 +47,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const response = await fetch(target.toString(), {
-      headers: { Accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8" },
+      headers: { Accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8", "User-Agent": "AgentFlow-Website/1.0" },
       redirect: "follow",
       signal: AbortSignal.timeout(8000),
       cache: "force-cache",
