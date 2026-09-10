@@ -1,6 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { fetchAccessTradeDatafeeds, rankAffiliateOpportunities } from "@/lib/accesstrade";
+import { fetchGoogleAffiliateSheetProducts } from "@/lib/google-affiliate-sheet";
 
 type DealRow = {
   id?: string | number | null;
@@ -21,7 +22,7 @@ export type WebsiteProduct = {
   url: string | null;
   merchantUrl: string | null;
   category: string;
-  source: "accesstrade" | "deal";
+  source: "accesstrade" | "sheet" | "deal";
   network: WebsiteNetwork;
   score: number;
 };
@@ -31,6 +32,13 @@ function detectNetwork(value: string | null | undefined): WebsiteNetwork {
   if (text.includes("shopee")) return "shopee";
   if (text.includes("lazada")) return "lazada";
   return "other";
+}
+
+function dedupeKey(product: WebsiteProduct) {
+  return String(product.merchantUrl || product.url || "")
+    .toLowerCase()
+    .replace(/[?#].*$/, "")
+    .replace(/\/+$/, "");
 }
 
 async function loadCatalog(): Promise<WebsiteProduct[]> {
@@ -59,6 +67,16 @@ async function loadCatalog(): Promise<WebsiteProduct[]> {
   }
 
   try {
+    const sheetProducts = await fetchGoogleAffiliateSheetProducts(48);
+    products.push(...sheetProducts);
+    console.info("[website-catalog] Google Sheets affiliate feed loaded", {
+      count: sheetProducts.length,
+    });
+  } catch (error) {
+    console.error("[website-catalog] Google Sheets affiliate feed unavailable", error);
+  }
+
+  try {
     // Keep this query aligned with the live commerce_deals schema.
     const deals = (await supabaseAdmin<DealRow[]>(
       "commerce_deals?select=id,deal_title,revenue,status,created_at&order=created_at.desc&limit=24"
@@ -74,7 +92,16 @@ async function loadCatalog(): Promise<WebsiteProduct[]> {
     console.error("[website-catalog] commerce_deals unavailable", error);
   }
 
-  return products.filter((item) => item.url).sort((a, b) => b.score - a.score).slice(0, 60);
+  const unique = new Map<string, WebsiteProduct>();
+  for (const product of products.filter((item) => item.url)) {
+    const key = dedupeKey(product);
+    const existing = unique.get(key);
+    if (!existing || product.score > existing.score || (!existing.image && product.image)) {
+      unique.set(key, product);
+    }
+  }
+
+  return [...unique.values()].sort((a, b) => b.score - a.score).slice(0, 80);
 }
 
 export const getWebsiteCatalog = unstable_cache(loadCatalog, ["agentflow-website-catalog"], {
