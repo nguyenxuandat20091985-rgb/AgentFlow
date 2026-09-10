@@ -5,80 +5,100 @@
 Operate the **Nhà Bếp Thông Minh** storefront as an independent production agent:
 
 1. Discover real affiliate opportunities (AccessTrade / provider feeds).
-2. Discover public buying-intent signals (public RSS only).
+2. Discover public buying-intent signals (public RSS/web sources; never bypass access controls).
 3. Rank and merchandise products on `/website`.
-4. Prepare SEO / product / follow-up **drafts** only.
-5. Prepare **outreach post drafts** (phase 1: draft-only, allow-list, no auto-post).
+4. Prepare SEO / product / follow-up drafts.
+5. Prepare outreach post drafts (allow-list + anti-spam policy; no blind mass-posting).
 6. Track clicks and verified revenue evidence — never invent orders or payments.
 
-## Runtime boundary
+## Control-center rule
+
+- **Primary operator entry point:** `https://agentflow-khaki-rho.vercel.app/`
+- AI Website is monitored from **Workflows** in the central control plane.
+- `/website` is the public storefront, not a second operations center.
+- The Workflow monitor links back to the central control center so the owner does not need to manage the Website from a separate route.
+
+## Runtime boundary / isolation contract
 
 - Agent ID: `salesbot`
 - Channel: `website`
-- Production allow-list: heartbeat + runtime accept only `salesbot` and `marketing`
-- Isolated from AI Facebook, AI Binance, and all development agents
-- Financial KPI is read-only from `revenue_ledger` / verified provider records
+- Production allow-list currently accepts only the validated live agents (`salesbot`, `marketing`).
+- AI Website owns only Website paths: `lib/website-*`, `lib/publishers/owned-cms.ts`, `app/api/website/*`, `app/website/*` and its own documentation/tests.
+- It must not modify `lib/ceo/*`, `app/api/ceo/*`, Facebook paths, payment logic, or another agent's queue.
+- Shared runtime/workflow changes require the smallest additive change plus a regression check.
+- A Website failure must not stop Facebook or other isolated agents.
 
-## Endpoints
+## External content sources
 
-| Endpoint | Purpose | Auth |
-|---|---|---|
-| `POST /api/agents/heartbeat` | Keep salesbot online | Bearer **or** `x-agent-heartbeat-secret` |
-| `POST /api/agents/runtime` | Planning cycle + action queue | Bearer **or** `x-agent-heartbeat-secret` |
-| `POST /api/website/hunt` | Public buyer-intent discovery | Bearer **or** `x-agent-heartbeat-secret` |
-| `POST /api/website/outreach` | Outreach drafts (phase 1) | Bearer **or** `x-agent-heartbeat-secret` |
-| `GET /api/website/refresh` | Revalidate catalog cache | Bearer cron/heartbeat secret |
-| `GET /api/website/catalog` | Public catalog | Public |
-| `GET /api/cron/website` | Vercel cron → refresh | Bearer `CRON_SECRET` |
-| `/website` | Storefront PWA | Public |
+The Website Agent may **discover** public buying-intent signals from sources such as Reddit, Quora, Medium, Blogger, WordPress.com and suitable public Q&A/forums where access is permitted. Discovery does not require installing those websites on the owner's phone.
 
-See also: [ai1-website-outreach.md](./ai1-website-outreach.md)
+Publishing is separate from discovery: a platform account, API/OAuth permission, campaign approval, or manual review may be required. The agent must obey each platform and affiliate-network policy and must not mass-spam communities, comments, groups, or official channels.
+
+## Affiliate architecture
+
+Keep affiliate providers behind independent adapters. Target channels:
+
+- `ACCESSTRADE`
+- `SHOPEE`
+- `LAZADA`
+
+Each adapter must have its own credentials/configuration, product ingestion, link generation, tracking and compliance rules. One provider failing must not disable the Website Agent or another provider.
 
 ## Automation loop
 
 GitHub Actions workflow: `.github/workflows/agent-heartbeat.yml`
 
-Every 5 minutes:
+Current loop:
 
 1. Heartbeat `salesbot`
 2. Heartbeat `marketing`
-3. Runtime **salesbot only** (`{"agentId":"salesbot"}`)
-4. Hunt public website signals
+3. Runtime `salesbot`
+4. Website signal hunt
 
-Vercel cron: `/api/cron/website` daily 03:00 UTC → catalog refresh.
+The Website monitor in **Workflows** reads production status/catalog data and is display-only; it does not create payments or revenue.
 
-## Required secrets (must match)
+## Data / revenue rules
 
-**GitHub Actions**
+- Provider-generated affiliate links only.
+- No fake products, clicks, orders, conversions, commission or revenue.
+- Financial KPI is read-only from verified provider records / `revenue_ledger`.
+- Payment movement and withdrawals are outside this agent.
+- Idempotent event keys must remain agent-scoped.
 
-- Secret: `AGENT_HEARTBEAT_SECRET`
-- Variable: `AGENTFLOW_APP_URL` = `https://agentflow-khaki-rho.vercel.app`
+## Handoff requirements
 
-**Vercel (Production)**
+Before another AI changes Website code:
 
-- `AGENT_HEARTBEAT_SECRET` — **exact same value** as GitHub
-- `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`
-- `OPENAI_API_KEY`
-- `ACCESSTRADE_PUBLISHER_ID` / `ACCESSTRADE_API_KEY`
-- `CRON_SECRET` (recommended)
-- Optional: `WEBSITE_OUTREACH_DESTINATIONS` JSON overrides
+1. Read `docs/ARCHITECTURE.md`.
+2. Read `docs/AI_WORKBOARD.md`.
+3. Read this file.
+4. Use an isolated branch: `agent/salesbot-*` or `agent/ai1-website-*`.
+5. Declare owned paths before editing.
+6. Do not change another AI's paths or silently expand the runtime allow-list.
+7. Run build/typecheck/relevant tests.
+8. Update this file and `docs/AI_WORKBOARD.md` with **what changed / verified / next action / known risks**.
 
-If heartbeat returns `401 unauthorized`, the two secrets are out of sync.
+## Current handoff — 2026-09-10
 
-## Safety rules
+### What changed
 
-1. Draft-only actions — no fabricated publish, order, payment, or revenue.
-2. Public feeds only for signal discovery.
-3. Affiliate links must remain provider-generated.
-4. Never add development agents to the primary runtime allow-list in the same change as Website work.
-5. Feature branch for non-trivial Website changes: `agent/salesbot-*` or `agent/ai1-website-*`.
-6. Outreach phase 1 never auto-posts to blocked hosts (FB/IG/TikTok/Zalo/marketplaces).
+- Central control-plane entry remains `https://agentflow-khaki-rho.vercel.app/`.
+- The Workflows screen now uses the AI Website monitor card as the operational shortcut instead of treating `/website` as a second control center.
+- Monitor card is isolated under `components/agentflow/AIWebsiteShortcut.tsx` + `.module.css`; it reads `/api/agents` and `/api/website/catalog` only.
+- Monitor shows Website runtime state, catalog count, 24/7 cycle label and isolation status, with explicit links back to the center and to the public storefront.
 
-## Activation checklist
+### Verification target
 
-1. Secrets matched (GitHub ↔ Vercel).
-2. Actions → **AgentFlow automation loop** → Run workflow.
-3. Confirm `GET /api/agents` shows salesbot `status: "running"` and fresh `lastSeenAt`.
-4. Confirm latest `agent_task_runs` row for `salesbot` is `completed`.
-5. Storefront `/website` shows catalog products with affiliate links.
-6. Optional: call `/api/website/outreach` and review `website_outreach_post_draft` queue rows.
+- New Vercel deployment must build successfully.
+- Workflows must render without blocking the existing AgentFlow shell.
+- Monitor must remain read-only and fail soft if `/api/agents` or catalog is unavailable.
+- Existing `salesbot` / `marketing` heartbeat-runtime behavior must remain unchanged.
+
+### Next action
+
+Verify production deployment, then continue AI Website improvements only inside the Website ownership boundary. Do not activate additional AI agents as part of this Website change.
+
+### Known risks
+
+- External platform APIs/policies vary; discovery and publishing permissions must be handled separately.
+- Affiliate provider credentials must stay in deployment environment variables and never be committed.
