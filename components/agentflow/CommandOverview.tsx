@@ -53,6 +53,7 @@ type Cockpit = {
 
 const NAV = [
   ["/", "⌂", "Tổng quan"],
+  ["/website", "W", "AI Website"],
   ["/agents", "◈", "AI Agents"],
   ["/workflows", "⌁", "Workflows"],
   ["/history", "◷", "Lịch sử"],
@@ -281,6 +282,9 @@ export default function CommandOverview() {
               {cockpit?.channels?.facebook?.live ? "live" : "—"} · Tier A auto{" "}
               {cockpit?.channels?.website?.autoPublishTierA ? "ON" : "OFF"}
             </p>
+            <a href="/website" target="_blank" rel="noopener noreferrer" className={styles.note}>
+              → Mở trực tiếp AI Website – Nhà Bếp Thông Minh
+            </a>
           </div>
         </section>
 

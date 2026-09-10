@@ -4,7 +4,16 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const ALLOWED_HOSTS = ["shopee.vn", "lazada.vn", "accesstrade.vn", "shopee.com", "lazada.com"];
+const ALLOWED_HOSTS = [
+  "shopee.vn",
+  "lazada.vn",
+  "accesstrade.vn",
+  "fast.accesstrade.com.vn",
+  "go.isclix.com",
+  "isclix.com",
+  "shopee.com",
+  "lazada.com",
+];
 
 function safeDestination(raw: string) {
   try {
@@ -18,10 +27,21 @@ function safeDestination(raw: string) {
   }
 }
 
+function networkFor(hostname: string) {
+  const host = hostname.toLowerCase();
+  if (host.includes("shopee")) return "shopee";
+  if (host.includes("lazada")) return "lazada";
+  return "affiliate";
+}
+
 export async function GET(request: NextRequest) {
   const destination = safeDestination(request.nextUrl.searchParams.get("url") || "");
+  const fallback = safeDestination(request.nextUrl.searchParams.get("fallback") || "");
   const productId = (request.nextUrl.searchParams.get("productId") || "unknown").slice(0, 160);
-  if (!destination) return NextResponse.json({ ok: false, error: "blocked_destination" }, { status: 400 });
+  if (!destination) {
+    if (fallback) return NextResponse.redirect(fallback, 302);
+    return NextResponse.json({ ok: false, error: "blocked_destination" }, { status: 400 });
+  }
 
   try {
     await supabaseAdmin("website_click_events", {
@@ -29,7 +49,7 @@ export async function GET(request: NextRequest) {
       headers: { Prefer: "return=minimal" },
       body: JSON.stringify({
         product_id: productId,
-        network: destination.hostname.toLowerCase().includes("shopee") ? "shopee" : destination.hostname.toLowerCase().includes("lazada") ? "lazada" : "affiliate",
+        network: networkFor(destination.hostname),
         source: request.nextUrl.searchParams.get("source")?.slice(0, 80) || "website",
         referrer: request.headers.get("referer")?.slice(0, 500) || null,
         path: request.headers.get("x-forwarded-uri")?.slice(0, 500) || "/website",
