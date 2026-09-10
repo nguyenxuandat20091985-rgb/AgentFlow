@@ -33,3 +33,7 @@ Required only for providers that should participate. Supported variables:
 - `DEEPSEEK_API_KEY` / optional `DEEPSEEK_MODEL`
 
 Existing deployments with only some keys configured remain valid; unconfigured providers are skipped automatically.
+
+## Isolation note
+
+This router is shared infrastructure. Existing production agents are not switched over automatically; each agent must migrate through its own isolated branch and CI-validated PR.
