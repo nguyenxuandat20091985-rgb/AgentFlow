@@ -1,0 +1,62 @@
+name: Agent Isolation Check
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  isolation:
+    name: Validate agent ownership and handoff
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate workboard exists
+        run: test -s docs/AI_WORKBOARD.md
+
+      - name: Validate agent branch ownership
+        shell: bash
+        run: |
+          set -euo pipefail
+          BRANCH="${{ github.head_ref }}"
+          BASE="${{ github.base_ref }}"
+          echo "Checking branch: $BRANCH"
+          echo "Against base: $BASE"
+
+          # Shared maintenance branches are allowed to touch shared infrastructure.
+          if [[ "$BRANCH" == agent/ceo-* || "$BRANCH" == agent/ai1-website-* || "$BRANCH" == agent/ai2-facebook-* || "$BRANCH" == agent/llm-* || "$BRANCH" == ai/* || "$BRANCH" == ai3-* ]]; then
+            echo "Recognized isolated/maintenance branch."
+          else
+            echo "ERROR: feature work must use an isolated agent/*, ai/*, or ai3-* branch."
+            exit 1
+          fi
+
+          git fetch origin "$BASE" --quiet
+          mapfile -t FILES < <(git diff --name-only "origin/$BASE...HEAD")
+          printf '%s\n' "${FILES[@]}"
+
+          # No PR may alter secrets or local env files.
+          if printf '%s\n' "${FILES[@]}" | grep -E '(^|/)(\.env|\.env\.|.*secret.*)$' >/dev/null; then
+            echo "ERROR: secret/env files must not be committed."
+            exit 1
+          fi
+
+          # Keep the shared handoff document present in every PR result.
+          test -s docs/AI_WORKBOARD.md
+
+      - name: Check accidental credential literals
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git grep -nE '(GROQ_API_KEY|GEMINI_API_KEY|OPENROUTER_API_KEY|DEEPSEEK_API_KEY)[[:space:]]*[:=][[:space:]]*["'"'][^$]' -- ':!docs/AI_WORKBOARD.md' ':!*.lock' ; then
+            echo "ERROR: possible provider credential literal detected. Use environment variables only."
+            exit 1
+          fi
+          echo "No provider credential literals detected."
