@@ -110,14 +110,30 @@ export async function discoverWebsiteSignals() {
 
   if (!unique.length) return { discovered: 0, persisted: 0, signals: [] as WebsiteSignal[] };
 
-  const persisted = await supabaseAdmin<WebsiteSignal[]>("website_signals", {
-    method: "POST",
-    headers: { Prefer: "return=representation,resolution=ignore-duplicates" },
-    body: JSON.stringify(unique),
-  }).catch((error) => {
-    console.error("[website-hunter] persistence failed", { message: error instanceof Error ? error.message : String(error) });
-    return [];
-  });
+  // Persist one signal at a time so an already-known signal is a normal no-op.
+  // This makes the hunter idempotent even when the database has a unique constraint
+  // on (source, external_id) and the RSS feed returns the same item again.
+  let persistedCount = 0;
+  for (const signal of unique) {
+    try {
+      const inserted = await supabaseAdmin<WebsiteSignal[]>("website_signals", {
+        method: "POST",
+        headers: { Prefer: "return=representation,resolution=ignore-duplicates" },
+        body: JSON.stringify([signal]),
+      });
+      if (Array.isArray(inserted) && inserted.length > 0) persistedCount += inserted.length;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (/duplicate key|unique constraint|already exists/i.test(message)) {
+        continue;
+      }
+      console.error("[website-hunter] signal persistence failed", {
+        source: signal.source,
+        external_id: signal.external_id,
+        message,
+      });
+    }
+  }
 
-  return { discovered: unique.length, persisted: Array.isArray(persisted) ? persisted.length : 0, signals: unique };
+  return { discovered: unique.length, persisted: persistedCount, signals: unique };
 }
