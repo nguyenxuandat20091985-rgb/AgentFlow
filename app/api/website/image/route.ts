@@ -19,8 +19,6 @@ const DEFAULT_ALLOWED_HOSTS = [
   "images-na.ssl-images-amazon.com",
 ];
 
-const DEFAULT_MERCHANT_HOSTS = ["30shinestore.com"];
-
 function isPrivateHost(hostname: string) {
   const host = hostname.toLowerCase().replace(/^\[|\]$/g, "");
   return host === "localhost" || host === "127.0.0.1" || host === "0.0.0.0" || host === "::1" || host.endsWith(".local") || host.endsWith(".internal") || host.endsWith(".localhost") || /^10\./.test(host) || /^192\.168\./.test(host) || /^172\.(1[6-9]|2\d|3[0-1])\./.test(host);
@@ -46,106 +44,28 @@ function safeUrl(value: string, allowed: string[]) {
   }
 }
 
-// URLs coming from the server-side AccessTrade catalog are trusted as product
-// destinations, but still must be public HTTPS URLs to prevent SSRF.
-function safeCatalogUrl(value: string | null | undefined) {
-  if (!value) return null;
-  try {
-    const normalized = value.trim().startsWith("//") ? `https:${value.trim()}` : value.trim();
-    const url = new URL(normalized);
-    if (url.protocol === "http:") url.protocol = "https:";
-    return url.protocol === "https:" && !url.username && !url.password && !url.port && !isPrivateHost(url.hostname) ? url : null;
-  } catch {
-    return null;
-  }
-}
-
-async function fetchImage(target: URL, catalogSourced = false) {
-  const allowed = [...DEFAULT_ALLOWED_HOSTS, ...configuredHosts("WEBSITE_IMAGE_ALLOWED_HOSTS")];
-  let current = target;
-  for (let hop = 0; hop < 4; hop += 1) {
-    const response = await fetch(current.toString(), {
-      headers: { Accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8", "User-Agent": "AgentFlow-Website/1.0" },
-      redirect: "manual",
-      signal: AbortSignal.timeout(8000),
-      cache: "force-cache",
-    });
-    if (response.status >= 300 && response.status < 400) {
-      const location = response.headers.get("location");
-      const next = location
-        ? catalogSourced
-          ? safeCatalogUrl(new URL(location, current).toString())
-          : safeUrl(new URL(location, current).toString(), allowed)
-        : null;
-      if (!next) return null;
-      current = next;
-      continue;
-    }
-    return response;
-  }
-  return null;
-}
-
-async function findOgImage(merchant: URL) {
-  const response = await fetch(merchant.toString(), {
-    headers: { Accept: "text/html,application/xhtml+xml", "User-Agent": "Mozilla/5.0 (compatible; AgentFlow-Website/1.0)" },
-    redirect: "manual",
-    signal: AbortSignal.timeout(8000),
-    cache: "force-cache",
-  });
-  if (response.status >= 300 && response.status < 400) {
-    const location = response.headers.get("location");
-    const next = location ? safeCatalogUrl(new URL(location, merchant).toString()) : null;
-    if (!next) return null;
-    return findOgImage(next);
-  }
-  if (!response.ok) return null;
-  const html = (await response.text()).slice(0, 2_000_000);
-  const patterns = [
-    /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["'][^>]*>/i,
-    /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["'][^>]*>/i,
-    /<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["'][^>]*>/i,
-    /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["'][^>]*>/i,
-  ];
-  const allowedImages = [...DEFAULT_ALLOWED_HOSTS, ...configuredHosts("WEBSITE_IMAGE_ALLOWED_HOSTS"), ...DEFAULT_MERCHANT_HOSTS, ...configuredHosts("WEBSITE_MERCHANT_ALLOWED_HOSTS")];
-  for (const pattern of patterns) {
-    const match = html.match(pattern);
-    const candidate = match?.[1];
-    if (candidate) {
-      const image = safeCatalogUrl(new URL(candidate, merchant).toString());
-      if (image && (hostMatches(image.hostname, allowedImages) || !isPrivateHost(image.hostname))) return image;
-    }
-  }
-  return null;
-}
-
-async function respondWithImage(response: Response) {
-  if (!response.ok) return null;
-  const contentType = response.headers.get("content-type") || "image/jpeg";
-  const contentLength = Number(response.headers.get("content-length") || 0);
-  if (!contentType.startsWith("image/") || contentLength > 8 * 1024 * 1024) return null;
-  return new NextResponse(response.body, { status: 200, headers: { "Content-Type": contentType, "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400", "X-Content-Type-Options": "nosniff" } });
+// AccessTrade supplies the image URL. The browser does not fetch that CDN
+// directly; wsrv.nl fetches and caches the public image, avoiding broken
+// hotlink/CDN/TLS behavior while keeping the catalog source unchanged.
+function imageCdnUrl(source: URL) {
+  const params = new URLSearchParams({ url: source.toString(), w: "900", h: "900", fit: "cover", output: "webp", q: "85" });
+  return `https://images.weserv.nl/?${params.toString()}`;
 }
 
 export async function GET(request: NextRequest) {
   const raw = request.nextUrl.searchParams.get("url");
   const productId = request.nextUrl.searchParams.get("productId");
-  const rawFallback = request.nextUrl.searchParams.get("fallback");
 
   if (!raw && !productId) return NextResponse.json({ ok: false, error: "missing_url" }, { status: 400 });
 
   try {
     let target: URL | null = null;
-    let merchant: URL | null = null;
 
-    // Prefer the server-side catalog. This means a product image can be repaired
-    // even when the original AccessTrade CDN URL is stale or has an unsupported host.
+    // Resolve by productId on the server so the image always comes from the
+    // current AccessTrade catalog rather than a client-supplied arbitrary URL.
     if (productId) {
       const product = (await getWebsiteCatalog()).find((item) => item.id === productId);
-      if (product) {
-        target = safeCatalogUrl(product.image);
-        merchant = safeCatalogUrl(product.merchantUrl);
-      }
+      target = product?.image ? new URL(product.image) : null;
     }
 
     if (!target && raw) {
@@ -153,29 +73,13 @@ export async function GET(request: NextRequest) {
       target = safeUrl(raw, allowedImages);
     }
 
-    if (!merchant && rawFallback) {
-      const merchantAllowed = [...DEFAULT_MERCHANT_HOSTS, ...configuredHosts("WEBSITE_MERCHANT_ALLOWED_HOSTS")];
-      merchant = safeUrl(rawFallback, merchantAllowed);
+    if (!target || target.protocol !== "https:" && target.protocol !== "http:" || isPrivateHost(target.hostname)) {
+      return NextResponse.json({ ok: false, error: "blocked_url" }, { status: 400 });
     }
 
-    if (!target) return NextResponse.json({ ok: false, error: "blocked_url" }, { status: 400 });
-
-    const direct = await fetchImage(target, Boolean(productId));
-    const directResult = direct ? await respondWithImage(direct) : null;
-    if (directResult) return directResult;
-
-    if (merchant) {
-      const ogImage = await findOgImage(merchant);
-      if (ogImage) {
-        const fallbackResponse = await fetchImage(ogImage, true);
-        const fallbackResult = fallbackResponse ? await respondWithImage(fallbackResponse) : null;
-        if (fallbackResult) return fallbackResult;
-      }
-    }
-
-    return NextResponse.json({ ok: false, error: "image_unavailable" }, { status: 502 });
+    return NextResponse.redirect(imageCdnUrl(target), 307);
   } catch (error) {
-    console.error("[website-image] proxy failed", error);
+    console.error("[website-image] image CDN redirect failed", error);
     return NextResponse.json({ ok: false, error: "image_proxy_failed" }, { status: 502 });
   }
 }
