@@ -15,11 +15,18 @@ const ALLOWED_HOSTS = [
   "lazada.com",
 ];
 
-function safeDestination(raw: string) {
+// Fallback destinations are merchant product pages, not tracking endpoints.
+// Keep this list explicit so a broken affiliate URL can fail over safely
+// without turning the redirect endpoint into an open redirector.
+const FALLBACK_ALLOWED_HOSTS = [
+  "30shinestore.com",
+];
+
+function safeDestination(raw: string, allowedHosts = ALLOWED_HOSTS) {
   try {
     const url = new URL(raw);
     const host = url.hostname.toLowerCase();
-    const allowed = ALLOWED_HOSTS.some((domain) => host === domain || host.endsWith(`.${domain}`));
+    const allowed = allowedHosts.some((domain) => host === domain || host.endsWith(`.${domain}`));
     if (url.protocol !== "https:" || !allowed || url.username || url.password || url.port) return null;
     return url;
   } catch {
@@ -36,7 +43,7 @@ function networkFor(hostname: string) {
 
 export async function GET(request: NextRequest) {
   const destination = safeDestination(request.nextUrl.searchParams.get("url") || "");
-  const fallback = safeDestination(request.nextUrl.searchParams.get("fallback") || "");
+  const fallback = safeDestination(request.nextUrl.searchParams.get("fallback") || "", FALLBACK_ALLOWED_HOSTS);
   const productId = (request.nextUrl.searchParams.get("productId") || "unknown").slice(0, 160);
   if (!destination) {
     if (fallback) return NextResponse.redirect(fallback, 302);
