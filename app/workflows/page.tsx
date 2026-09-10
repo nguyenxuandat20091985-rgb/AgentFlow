@@ -1,2 +1,11 @@
 import AgentFlowShell from "../../components/agentflow/AgentFlowShell";
-export default function WorkflowsPage(){return <AgentFlowShell view="workflows"/>}
+import AIWebsiteShortcut from "../../components/agentflow/AIWebsiteShortcut";
+
+export default function WorkflowsPage() {
+  return (
+    <>
+      <AgentFlowShell view="workflows" />
+      <AIWebsiteShortcut />
+    </>
+  );
+}
