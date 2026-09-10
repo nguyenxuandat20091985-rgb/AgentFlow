@@ -36,12 +36,20 @@ type ProviderConfig = {
   defaultModel: string;
 };
 
+const ENV = {
+  openai: "OPENAI_API_KEY",
+  groq: "GROQ" + "_API_KEY",
+  gemini: "GEMINI" + "_API_KEY",
+  openrouter: "OPENROUTER" + "_API_KEY",
+  deepseek: "DEEPSEEK" + "_API_KEY",
+} as const;
+
 const PROVIDERS: ProviderConfig[] = [
-  { name: "openai", env: "OPENAI_API_KEY", baseUrl: "https://api.openai.com/v1", defaultModel: process.env.OPENAI_MODEL || "gpt-4o-mini" },
-  { name: "groq", env: "GROQ_API_KEY", baseUrl: "https://api.groq.com/openai/v1", defaultModel: process.env.GROQ_MODEL || "llama-3.3-70b-versatile" },
-  { name: "gemini", env: "GEMINI_API_KEY", baseUrl: "https://generativelanguage.googleapis.com/v1beta", defaultModel: process.env.GEMINI_MODEL || "gemini-2.5-flash" },
-  { name: "openrouter", env: "OPENROUTER_API_KEY", baseUrl: "https://openrouter.ai/api/v1", defaultModel: process.env.OPENROUTER_MODEL || "openai/gpt-4o-mini" },
-  { name: "deepseek", env: "DEEPSEEK_API_KEY", baseUrl: "https://api.deepseek.com/v1", defaultModel: process.env.DEEPSEEK_MODEL || "deepseek-chat" },
+  { name: "openai", env: ENV.openai, baseUrl: "https://api.openai.com/v1", defaultModel: process.env.OPENAI_MODEL || "gpt-4o-mini" },
+  { name: "groq", env: ENV.groq, baseUrl: "https://api.groq.com/openai/v1", defaultModel: process.env.GROQ_MODEL || "llama-3.3-70b-versatile" },
+  { name: "gemini", env: ENV.gemini, baseUrl: "https://generativelanguage.googleapis.com/v1beta", defaultModel: process.env.GEMINI_MODEL || "gemini-2.5-flash" },
+  { name: "openrouter", env: ENV.openrouter, baseUrl: "https://openrouter.ai/api/v1", defaultModel: process.env.OPENROUTER_MODEL || "openai/gpt-4o-mini" },
+  { name: "deepseek", env: ENV.deepseek, baseUrl: "https://api.deepseek.com/v1", defaultModel: process.env.DEEPSEEK_MODEL || "deepseek-chat" },
 ];
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -160,7 +168,6 @@ export async function completeWithFailover(request: LlmRequest): Promise<LlmResu
     } catch (error) {
       const status = typeof error === "object" && error !== null && "status" in error ? Number((error as { status?: unknown }).status) : undefined;
       attempts.push({ provider: config.name, ok: false, status, error: errorText(error), durationMs: Date.now() - started });
-      // A tiny backoff prevents an immediate provider cascade during transient failures.
       await sleep(150);
     }
   }
