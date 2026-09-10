@@ -18,7 +18,8 @@ export async function POST(request: Request) {
   }
   try {
     const report = await runCeoWebsiteCycle();
-    return NextResponse.json({ ok: true, ceo: "AI CEO", mode: "website-cycle", ...report });
+    const { ok: _reportOk, ...safeReport } = report;
+    return NextResponse.json({ ok: true, ceo: "AI CEO", mode: "website-cycle", ...safeReport });
   } catch (error) {
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : String(error) },
