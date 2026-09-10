@@ -13,6 +13,8 @@ const DEFAULT_ALLOWED_HOSTS = [
   "lzd-img-global.slatic.net",
   "cf.shopee.vn",
   "down-vn.img.susercontent.com",
+  "hstatic.net",
+  "product.hstatic.net",
   "images-na.ssl-images-amazon.com",
 ];
 
