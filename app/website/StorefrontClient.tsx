@@ -22,6 +22,13 @@ function purchaseHref(product: WebsiteProduct) {
   return `/api/website/click?${params.toString()}`;
 }
 
+function imageHref(product: WebsiteProduct) {
+  if (!product.image) return "";
+  const params = new URLSearchParams({ url: product.image });
+  if (product.merchantUrl) params.set("fallback", product.merchantUrl);
+  return `/api/website/image?${params.toString()}`;
+}
+
 export default function StorefrontClient({ products }: Props) {
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -147,7 +154,7 @@ export default function StorefrontClient({ products }: Props) {
 
             <section className={styles.productsSection}>
               <div className={styles.sectionHeading}><div><span>{tab === "saved" ? "ĐÃ LƯU" : "AI CURATED"}</span><h2>{tab === "saved" ? "Sản phẩm yêu thích" : "Deal hôm nay"}</h2></div><small>{activeProducts.length} sản phẩm</small></div>
-              {activeProducts.length === 0 ? <div className={styles.emptyShop}><div>♡</div><h3>Chưa có sản phẩm</h3><p>Hãy quay lại Deal hôm nay để xem các sản phẩm AI đã chọn.</p><button onClick={() => selectTab("deals")}>Xem deal</button></div> : <div className={styles.shopGrid}>{activeProducts.map((product) => <article className={styles.shopCard} key={product.id}><a href={purchaseHref(product)} target="_blank" rel="nofollow sponsored noopener" className={styles.productLink}><div className={styles.productImage}>{product.image ? <img src={`/api/website/image?url=${encodeURIComponent(product.image)}`} alt={product.title} loading="lazy" onError={(e) => { e.currentTarget.style.display = "none"; }} /> : <div className={styles.noImage}>NB</div>}<span className={styles.imageShine} />{product.discountRate > 0 && <span className={styles.saleBadge}>-{product.discountRate}%</span>}<span className={styles.sourceBadge}>{networkLabel(product.network)}</span></div><div className={styles.productInfo}><div className={styles.productCategory}>{product.category || "Đồ gia dụng"}</div><h3>{product.title}</h3><div className={styles.productBottom}><strong>{product.price ? `${money.format(product.price)} ₫` : "Xem giá"}</strong><span aria-label="Mua hàng">→</span></div><div className={styles.productCategory}>Mua hàng ↗</div></div></a><button className={styles.saveButton} onClick={() => toggleSaved(product.id)} aria-label={saved.includes(product.id) ? "Bỏ lưu sản phẩm" : "Lưu sản phẩm"}>{saved.includes(product.id) ? "♥" : "♡"}</button></article>)}</div>}
+              {activeProducts.length === 0 ? <div className={styles.emptyShop}><div>♡</div><h3>Chưa có sản phẩm</h3><p>Hãy quay lại Deal hôm nay để xem các sản phẩm AI đã chọn.</p><button onClick={() => selectTab("deals")}>Xem deal</button></div> : <div className={styles.shopGrid}>{activeProducts.map((product) => <article className={styles.shopCard} key={product.id}><a href={purchaseHref(product)} target="_blank" rel="nofollow sponsored noopener" className={styles.productLink}><div className={styles.productImage}>{product.image ? <img src={imageHref(product)} alt={product.title} loading="lazy" onError={(e) => { e.currentTarget.style.display = "none"; }} /> : <div className={styles.noImage}>NB</div>}<span className={styles.imageShine} />{product.discountRate > 0 && <span className={styles.saleBadge}>-{product.discountRate}%</span>}<span className={styles.sourceBadge}>{networkLabel(product.network)}</span></div><div className={styles.productInfo}><div className={styles.productCategory}>{product.category || "Đồ gia dụng"}</div><h3>{product.title}</h3><div className={styles.productBottom}><strong>{product.price ? `${money.format(product.price)} ₫` : "Xem giá"}</strong><span aria-label="Mua hàng">→</span></div><div className={styles.productCategory}>Mua hàng ↗</div></div></a><button className={styles.saveButton} onClick={() => toggleSaved(product.id)} aria-label={saved.includes(product.id) ? "Bỏ lưu sản phẩm" : "Lưu sản phẩm"}>{saved.includes(product.id) ? "♥" : "♡"}</button></article>)}</div>}
             </section>
 
             <section className={styles.trustSection}><div><span className={styles.trustIcon}>✦</span><strong>AI chọn lọc</strong><p>Ưu tiên deal đáng chú ý.</p></div><div><span className={styles.trustIcon}>↗</span><strong>Link affiliate</strong><p>Chỉ rời website khi khách chọn mua.</p></div><div><span className={styles.trustIcon}>✓</span><strong>An toàn</strong><p>Không lộ khóa API hay secret ra trình duyệt.</p></div></section>
