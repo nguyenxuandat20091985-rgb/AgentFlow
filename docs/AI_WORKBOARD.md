@@ -104,3 +104,5 @@ Stop further feature work. Revert/rollback to the last known-good deployment, re
 - 2026-09-10: 20-agent separation recorded; live agents remain `salesbot` and `marketing` in the current runtime allow-list.
 - 2026-09-10: AI Website operations reaffirmed under the central control center; Workflows receives the Website monitor; `/website` remains public storefront only.
 - 2026-09-10: Website monitor isolated to `components/agentflow/AIWebsiteShortcut.tsx` + `.module.css`; monitor is read-only and fail-soft.
+- 2026-09-10: AI Website monitor reorganized into a compact five-stage workflow: signal discovery → intent analysis → content → owned Website → affiliate tracking, with Reddit/Quora/Medium/Blogger/WordPress.com/public Q&A sources and ACCESSTRADE/Shopee/Lazada targets displayed separately.
+- 2026-09-10: Isolation reaffirmed: `salesbot` remains the only Website runtime owner; no other AI activation, payment movement, or shared runtime change was introduced.
