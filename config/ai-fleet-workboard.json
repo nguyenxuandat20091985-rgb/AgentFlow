@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "sourceOfTruth": "docs/AI_WORKBOARD.md",
+  "productionBranch": "main",
+  "rules": {
+    "noDirectProductionWrites": true,
+    "requireIsolatedBranch": true,
+    "requireCiBeforeMerge": true,
+    "requireKnownGoodFallback": true,
+    "activateOneAgentAtATime": true,
+    "secretsFromEnvironmentOnly": true
+  },
+  "llmProviders": [
+    { "env": "GROQ_API_KEY", "configuredByOwner": true },
+    { "env": "GEMINI_API_KEY", "configuredByOwner": true },
+    { "env": "OPENROUTER_API_KEY", "configuredByOwner": true },
+    { "env": "DEEPSEEK_API_KEY", "configuredByOwner": true }
+  ],
+  "agents": [
+    { "order": 1, "id": "salesbot", "name": "AI Website & Hosting", "status": "live-verify", "next": "Verify heartbeat, runtime and website cycle" },
+    { "order": 2, "id": "database", "name": "AI Database & Storage", "status": "planned", "next": "Define data ownership and contracts" },
+    { "order": 3, "id": "payment", "name": "AI Payment & Escrow", "status": "planned", "next": "Read-only payment verification first" },
+    { "order": 4, "id": "marketing", "name": "AI Facebook Marketing & Graph API", "status": "live-verify", "next": "Verify token diagnostic and approval-gated publishing" },
+    { "order": 5, "id": "telegram-zalo", "name": "AI Telegram & Zalo Distribution", "status": "planned", "next": "Define channel adapters and anti-spam policy" },
+    { "order": 6, "id": "affiliate", "name": "AI Affiliate & Shopee Automation", "status": "planned", "next": "Define product and tracking-link contract" },
+    { "order": 7, "id": "content", "name": "AI Content Generator", "status": "planned", "next": "Use shared LLM provider router" },
+    { "order": 8, "id": "workflow", "name": "AI Workflow & Make.com Automation", "status": "planned", "next": "Add isolated jobs" },
+    { "order": 9, "id": "cicd", "name": "AI CI/CD & GitHub Actions", "status": "in-progress", "next": "Enforce isolation and PR checks" },
+    { "order": 10, "id": "mobile", "name": "AI Mobile Terminal & Code Manager", "status": "planned", "next": "Document safe mobile workflow" },
+    { "order": 11, "id": "local-model", "name": "AI Local Model Runner", "status": "planned", "next": "Define adapter and permissions" },
+    { "order": 12, "id": "seo", "name": "AI SEO & Traffic Growth", "status": "planned", "next": "Read-only analytics first" },
+    { "order": 13, "id": "support", "name": "AI Customer Support & Chatbot", "status": "planned", "next": "Draft-only support and escalation" },
+    { "order": 14, "id": "analytics", "name": "AI Data Analytics & Tracking", "status": "planned", "next": "Define verified event schema" },
+    { "order": 15, "id": "security", "name": "AI Security & Heartbeat Monitor", "status": "in-progress", "next": "Centralize auth and health checks" },
+    { "order": 16, "id": "order-verifier", "name": "AI Order & Transaction Verifier", "status": "planned", "next": "Read-only order verification" },
+    { "order": 17, "id": "cross-poster", "name": "AI Social Media Cross-Poster", "status": "planned", "next": "Adapters plus approval gate" },
+    { "order": 18, "id": "error-fallback", "name": "AI Error Handler & Fallback", "status": "in-progress", "next": "Protect live agents from secondary failures" },
+    { "order": 19, "id": "backup-recovery", "name": "AI Backup & System Recovery", "status": "planned", "next": "Recovery runbook and restore test" },
+    { "order": 20, "id": "task-scheduler", "name": "AI Task Queue & Scheduler", "status": "planned", "next": "Per-agent queues and idempotency" }
+  ]
+}
