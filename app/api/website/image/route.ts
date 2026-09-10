@@ -40,6 +40,31 @@ function safeUrl(value: string) {
   }
 }
 
+async function fetchImage(target: URL) {
+  let current = target;
+  for (let hop = 0; hop < 4; hop += 1) {
+    const response = await fetch(current.toString(), {
+      headers: {
+        Accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+        "User-Agent": "AgentFlow-Website/1.0",
+      },
+      redirect: "manual",
+      signal: AbortSignal.timeout(8000),
+      cache: "force-cache",
+    });
+
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get("location");
+      const next = location ? safeUrl(new URL(location, current).toString()) : null;
+      if (!next) return null;
+      current = next;
+      continue;
+    }
+    return response;
+  }
+  return null;
+}
+
 export async function GET(request: NextRequest) {
   const raw = request.nextUrl.searchParams.get("url");
   if (!raw) return NextResponse.json({ ok: false, error: "missing_url" }, { status: 400 });
@@ -48,15 +73,8 @@ export async function GET(request: NextRequest) {
   if (!target) return NextResponse.json({ ok: false, error: "blocked_url" }, { status: 400 });
 
   try {
-    const response = await fetch(target.toString(), {
-      headers: { Accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8", "User-Agent": "AgentFlow-Website/1.0" },
-      redirect: "follow",
-      signal: AbortSignal.timeout(8000),
-      cache: "force-cache",
-    });
-
-    const finalUrl = safeUrl(response.url);
-    if (!finalUrl) return NextResponse.json({ ok: false, error: "blocked_redirect" }, { status: 502 });
+    const response = await fetchImage(target);
+    if (!response) return NextResponse.json({ ok: false, error: "blocked_redirect" }, { status: 502 });
     if (!response.ok) return NextResponse.json({ ok: false, error: "upstream_image_failed", status: response.status }, { status: 502 });
 
     const contentType = response.headers.get("content-type") || "image/jpeg";
