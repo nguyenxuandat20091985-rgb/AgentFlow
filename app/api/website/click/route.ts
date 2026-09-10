@@ -29,6 +29,20 @@ function safeDestination(raw: string, allowedHosts = ALLOWED_HOSTS) {
   }
 }
 
+/**
+ * ACCESSTRADE has used both the legacy isclix host and the newer
+ * fast.accesstrade.com.vn host for deep links. Keep the tracking path/query,
+ * but move legacy links to the current AT host instead of sending every
+ * product to one merchant fallback.
+ */
+function normalizeAffiliateDestination(url: URL) {
+  const host = url.hostname.toLowerCase();
+  if (host === "go.isclix.com" || host === "isclix.com") {
+    url.hostname = "fast.accesstrade.com.vn";
+  }
+  return url;
+}
+
 function networkFor(hostname: string) {
   const host = hostname.toLowerCase();
   if (host.includes("shopee")) return "shopee";
@@ -40,10 +54,13 @@ export async function GET(request: NextRequest) {
   const destination = safeDestination(request.nextUrl.searchParams.get("url") || "");
   const fallback = safeDestination(request.nextUrl.searchParams.get("fallback") || "", FALLBACK_ALLOWED_HOSTS);
   const productId = (request.nextUrl.searchParams.get("productId") || "unknown").slice(0, 160);
+
   if (!destination) {
     if (fallback) return NextResponse.redirect(fallback, 302);
     return NextResponse.json({ ok: false, error: "blocked_destination" }, { status: 400 });
   }
+
+  const normalizedDestination = normalizeAffiliateDestination(destination);
 
   try {
     await supabaseAdmin("website_click_events", {
@@ -51,7 +68,7 @@ export async function GET(request: NextRequest) {
       headers: { Prefer: "return=minimal" },
       body: JSON.stringify({
         product_id: productId,
-        network: networkFor(destination.hostname),
+        network: networkFor(normalizedDestination.hostname),
         source: request.nextUrl.searchParams.get("source")?.slice(0, 80) || "website",
         referrer: request.headers.get("referer")?.slice(0, 500) || null,
         path: request.headers.get("x-forwarded-uri")?.slice(0, 500) || "/website",
@@ -61,14 +78,8 @@ export async function GET(request: NextRequest) {
     console.warn("[website-click] tracking failed", { error: error instanceof Error ? error.message : String(error) });
   }
 
-  // Some legacy AccessTrade/isclix deep links can return a browser-level
-  // "Not Allowed" page even though the merchant URL is still valid. Do not
-  // send a customer into a dead page: when a trusted merchant fallback is
-  // available, prefer it for isclix destinations. The fallback stays strictly
-  // allowlisted above, so this cannot become an open redirect.
-  if ((destination.hostname === "go.isclix.com" || destination.hostname === "isclix.com") && fallback) {
-    return NextResponse.redirect(fallback, 302);
-  }
-
-  return NextResponse.redirect(destination, 302);
+  // Do NOT blindly redirect all AccessTrade/isclix links to 30Shine.
+  // That made all 48 cards appear to have the same destination and could
+  // destroy affiliate tracking. Legacy isclix links are normalized above.
+  return NextResponse.redirect(normalizedDestination, 302);
 }
