@@ -19,6 +19,7 @@ export type WebsiteProduct = {
   discountRate: number;
   image: string | null;
   url: string | null;
+  merchantUrl: string | null;
   category: string;
   source: "accesstrade" | "deal";
   network: WebsiteNetwork;
@@ -42,10 +43,11 @@ async function loadCatalog(): Promise<WebsiteProduct[]> {
       products.push({
         id: `at-${String(item.product_id ?? item.sku ?? "unknown")}`,
         title: item.name?.trim() || "Sản phẩm đang có ưu đãi",
-        price: Number(item.price ?? 0) || null,
+        price: Number(item.discount ?? item.price ?? 0) || null,
         discountRate: Number(item.discount_rate ?? 0) || 0,
         image: item.image || null,
         url: item.aff_link || item.url || null,
+        merchantUrl: item.url || null,
         category: item.category || "Ưu đãi nổi bật",
         source: "accesstrade",
         network: detectNetwork(destination),
