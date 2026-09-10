@@ -7,7 +7,7 @@
 ## 1. Production baseline
 
 - Production branch: `main`
-- Production app: `agentflow-khaki-rho.vercel.app`
+- Production app / **trung tâm điều hành bắt buộc:** `https://agentflow-khaki-rho.vercel.app/`
 - CEO registry: `lib/ceo/fleet.ts`
 - CEO router: `lib/ceo/router.ts`
 - Primary runtime: `lib/agent-runtime.ts`
@@ -19,7 +19,7 @@
 
 | # | AI | ID | Current state | Current scope | Next action |
 |---|---|---|---|---|---|
-| 1 | AI Website & Hosting | `salesbot` | **LIVE / VERIFY** | Website, hosting, affiliate storefront, outreach cycle | Verify production heartbeat → runtime → website cycle; only fix proven failures |
+| 1 | AI Website & Hosting | `salesbot` | **LIVE / VERIFY** | Website, hosting, affiliate storefront, outreach cycle | Verify production heartbeat → runtime → website cycle; monitor from Workflows; only fix proven failures |
 | 2 | AI Database & Storage | `database` | PLANNED | Supabase / Firestore data layer | Define read/write contracts and ownership; no activation yet |
 | 3 | AI Payment & Escrow | `payment` | PLANNED | payOS/webhooks/ledger/escrow | Read-only verification first; real revenue only from verified events |
 | 4 | AI Facebook Marketing & Graph API | `marketing` | **LIVE / VERIFY** | Fanpage Nhà Bếp Thông Minh | Verify token diagnostic + connector; approval-gated publishing |
@@ -92,9 +92,9 @@ Stop further feature work. Revert/rollback to the last known-good deployment, re
 
 ## 5. Current execution order
 
-**NOW:** stabilize and verify AI Website.
+**NOW:** stabilize and verify AI Website. Its operational monitoring belongs inside **Workflows** of the central control center.
 
-**NEXT:** harden CI/CD + isolation + safe fallback without changing live Website behavior.
+**NEXT:** harden CI/CD + isolation + safe fallback without changing live Website/Facebook behavior.
 
 **THEN:** activate AI #2 onward one at a time, with explicit contracts and a green production verification between activations.
 
@@ -102,3 +102,5 @@ Stop further feature work. Revert/rollback to the last known-good deployment, re
 
 - 2026-09-10: Shared workboard established as the handoff source for all AI agents.
 - 2026-09-10: 20-agent separation recorded; live agents remain `salesbot` and `marketing` in the current runtime allow-list.
+- 2026-09-10: AI Website operations reaffirmed under the central control center; Workflows receives the Website monitor; `/website` remains public storefront only.
+- 2026-09-10: Website monitor isolated to `components/agentflow/AIWebsiteShortcut.tsx` + `.module.css`; monitor is read-only and fail-soft.
