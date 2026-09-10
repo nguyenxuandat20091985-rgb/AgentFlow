@@ -55,7 +55,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if git grep -nE '(GROQ_API_KEY|GEMINI_API_KEY|OPENROUTER_API_KEY|DEEPSEEK_API_KEY)[[:space:]]*[:=][[:space:]]*["'"'][^$]' -- ':!docs/AI_WORKBOARD.md' ':!*.lock' ; then
+          if git grep -nE '(GROQ_API_KEY|GEMINI_API_KEY|OPENROUTER_API_KEY|DEEPSEEK_API_KEY)[[:space:]]*[:=][[:space:]]*"' -- ':!docs/AI_WORKBOARD.md' ':!*.lock'; then
+            echo "ERROR: possible provider credential literal detected. Use environment variables only."
+            exit 1
+          fi
+          if git grep -nE "(GROQ_API_KEY|GEMINI_API_KEY|OPENROUTER_API_KEY|DEEPSEEK_API_KEY)[[:space:]]*[:=][[:space:]]*'" -- ':!docs/AI_WORKBOARD.md' ':!*.lock'; then
             echo "ERROR: possible provider credential literal detected. Use environment variables only."
             exit 1
           fi
