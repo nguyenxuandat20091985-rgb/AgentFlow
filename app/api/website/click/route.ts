@@ -15,12 +15,7 @@ const ALLOWED_HOSTS = [
   "lazada.com",
 ];
 
-// Fallback destinations are merchant product pages, not tracking endpoints.
-// Keep this list explicit so a broken affiliate URL can fail over safely
-// without turning the redirect endpoint into an open redirector.
-const FALLBACK_ALLOWED_HOSTS = [
-  "30shinestore.com",
-];
+const FALLBACK_ALLOWED_HOSTS = ["30shinestore.com"];
 
 function safeDestination(raw: string, allowedHosts = ALLOWED_HOSTS) {
   try {
@@ -63,8 +58,16 @@ export async function GET(request: NextRequest) {
       }),
     });
   } catch (error) {
-    // A tracking failure must never block a valid customer redirect.
     console.warn("[website-click] tracking failed", { error: error instanceof Error ? error.message : String(error) });
+  }
+
+  // Some legacy AccessTrade/isclix deep links can return a browser-level
+  // "Not Allowed" page even though the merchant URL is still valid. Do not
+  // send a customer into a dead page: when a trusted merchant fallback is
+  // available, prefer it for isclix destinations. The fallback stays strictly
+  // allowlisted above, so this cannot become an open redirect.
+  if ((destination.hostname === "go.isclix.com" || destination.hostname === "isclix.com") && fallback) {
+    return NextResponse.redirect(fallback, 302);
   }
 
   return NextResponse.redirect(destination, 302);
