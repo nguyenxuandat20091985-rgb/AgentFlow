@@ -1,3 +1,1 @@
-import { NextResponse } from "next/server";
-import { AI04_CONFIG } from "@/lib/agents/ai04/config";
-export async function GET(){return NextResponse.json({ok:true,agent:AI04_CONFIG});}
+import{NextResponse}from"next/server";import{AI04_CONFIG}from"@/lib/agents/ai04/config";export async function GET(){return NextResponse.json({ok:true,agent:AI04_CONFIG})}
