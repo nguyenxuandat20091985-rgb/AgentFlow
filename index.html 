@@ -1822,7 +1822,6 @@ html[dir="rtl"] .toast{transform:translateX(-120%);}
       <div class="pay-panel" id="panel-usdt">
         <div class="net-chips" id="netChips">
           <button class="net-chip active" data-net="BEP20">BEP20<small>BNB Smart Chain</small></button>
-          
         </div>
 
         <div class="qr-block">
@@ -1832,7 +1831,7 @@ html[dir="rtl"] .toast{transform:translateX(-120%);}
           <div class="qr-info">
             <h4 data-i18n="pay_usdt_title">Gửi USDT đến địa chỉ ví</h4>
             <p data-i18n="pay_usdt_desc">Chỉ gửi USDT trên đúng network đã chọn. Gửi sai network sẽ mất tiền.</p>
-            <span class="qr-pulse"><i></i> <span data-i18n="pay_net">Mạng:</span> <span id="netLabel">TRC20</span></span>
+            <span class="qr-pulse"><i></i> <span data-i18n="pay_net">Mạng:</span> <span id="netLabel">BEP20</span></span>
           </div>
         </div>
 
@@ -3674,14 +3673,20 @@ function toast(message, type = 'success', duration = 2600) {
 const overlay = $('#overlay');
 const cartDrawer = $('#cartDrawer');
 const payModal = $('#payModal');
-let currentNet = 'TRC20';
+let currentNet = 'BEP20';
 let currentOrderCode = 'FF000000';
 
 const WALLETS = {
-  TRC20: { label: 'TRON (TRC20)', address: 'TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE' },
-  BEP20: { label: 'BNB Smart Chain (BEP20)', address: '0x7A3f9C2b41D8eE5a0B6cF1d92E4a8B3cD5e6F701' },
-  ERC20: { label: 'Ethereum (ERC20)', address: '0x9F2bC4d71A6e83B05cD1f9E7a2B4c6D8e0F1A235' }
+  BEP20: { label: 'BNB Smart Chain (BEP20)', address: '0xada9b8ff01be517ca638071d138b523d14ce5373' }
 };
+
+function setCryptoQR() {
+  const img = $('#qrUsdtImage');
+  const wallet = WALLETS.BEP20?.address || '';
+  if (img && wallet) {
+    img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(wallet);
+  }
+}
 
 function lockScroll(lock) { document.body.classList.toggle('locked', lock); }
 
@@ -3715,7 +3720,7 @@ function openPay() {
 
   requestAnimationFrame(() => {
     drawQR($('#qrPayos'), payosSeed());
-    drawQR($('#qrUsdt'), usdtSeed());
+    setCryptoQR();
   });
 }
 
@@ -3778,7 +3783,7 @@ function updatePaymentAmounts() {
 
 function setNetwork(net) {
   currentNet = net;
-  const w = WALLETS[net];
+  const w = WALLETS.BEP20;
 
   $$('#netChips .net-chip').forEach(c => c.classList.toggle('active', c.dataset.net === net));
 
@@ -3787,7 +3792,7 @@ function setNetwork(net) {
   $('#kvWallet').textContent = w.address;
   $('#copyWallet').setAttribute('data-copy-value', w.address);
 
-  drawQR($('#qrUsdt'), usdtSeed());
+  setCryptoQR();
 }
 
 /* ─────────────── 12. QR RENDERER ─────────────── */
@@ -4120,7 +4125,7 @@ function bindEvents() {
 
     requestAnimationFrame(() => {
       if (method === 'payos') drawQR($('#qrPayos'), payosSeed());
-      else drawQR($('#qrUsdt'), usdtSeed());
+      else setCryptoQR();
     });
   });
 
@@ -4207,7 +4212,7 @@ function bindEvents() {
     rt = setTimeout(() => {
       if (payModal.classList.contains('show')) {
         drawQR($('#qrPayos'), payosSeed());
-        drawQR($('#qrUsdt'), usdtSeed());
+        setCryptoQR();
       }
     }, 220);
   });
