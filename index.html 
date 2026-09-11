@@ -1688,7 +1688,7 @@ html[dir="rtl"] .toast{transform:translateX(-120%);}
       <span data-i18n="footer_copy">© 2025 FlowForge Studio. All rights reserved.</span>
       <div class="pay-badges">
         <span class="pay-badge">payOS</span>
-        <span class="pay-badge">USDT · TRC20</span>
+        <span class="pay-badge">USDT · BEP20</span>
         <span class="pay-badge">USDT · BEP20</span>
         <span class="pay-badge">USDT · ERC20</span>
       </div>
@@ -1775,16 +1775,16 @@ html[dir="rtl"] .toast{transform:translateX(-120%);}
         <div class="kv-list">
           <div class="kv">
             <span class="kv-label" data-i18n="pay_bank">Ngân hàng</span>
-            <span class="kv-value">MB Bank — CN Sài Gòn</span>
+            <span class="kv-value" id="paymentBankName">BIDV — PGD Quảng Yên</span>
           </div>
           <div class="kv">
             <span class="kv-label" data-i18n="pay_holder">Chủ TK</span>
-            <span class="kv-value">FLOWFORGE STUDIO</span>
+            <span class="kv-value" id="paymentBankHolder">NGUYỄN XUÂN ĐẠT</span>
           </div>
           <div class="kv">
             <span class="kv-label" data-i18n="pay_account">Số TK</span>
-            <span class="kv-value hl">0987654321</span>
-            <button class="copy-btn" data-copy-value="0987654321">
+            <span class="kv-value hl" id="paymentBankAccount">4430269669</span>
+            <button class="copy-btn" id="copyBankAccount" data-copy-value="4430269669">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2.5"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
               <span class="copy-label">Copy</span>
             </button>
@@ -1821,14 +1821,13 @@ html[dir="rtl"] .toast{transform:translateX(-120%);}
       <!-- USDT panel -->
       <div class="pay-panel" id="panel-usdt">
         <div class="net-chips" id="netChips">
-          <button class="net-chip active" data-net="TRC20">TRC20<small>Tron</small></button>
-          <button class="net-chip" data-net="BEP20">BEP20<small>BNB Chain</small></button>
-          <button class="net-chip" data-net="ERC20">ERC20<small>Ethereum</small></button>
+          <button class="net-chip active" data-net="BEP20">BEP20<small>BNB Smart Chain</small></button>
+          
         </div>
 
         <div class="qr-block">
           <div class="qr-frame">
-            <canvas id="qrUsdt" width="132" height="132"></canvas>
+            <img id="qrUsdtImage" alt="USDT BEP20 wallet QR" width="132" height="132" style="width:132px;height:132px;border-radius:12px;background:#fff;padding:6px;" />
           </div>
           <div class="qr-info">
             <h4 data-i18n="pay_usdt_title">Gửi USDT đến địa chỉ ví</h4>
@@ -1840,12 +1839,12 @@ html[dir="rtl"] .toast{transform:translateX(-120%);}
         <div class="kv-list">
           <div class="kv">
             <span class="kv-label" data-i18n="pay_network">Network</span>
-            <span class="kv-value" id="kvNet">TRON (TRC20)</span>
+            <span class="kv-value" id="kvNet">BNB Smart Chain (BEP20)</span>
           </div>
           <div class="kv">
             <span class="kv-label" data-i18n="pay_wallet">Địa chỉ ví</span>
-            <span class="kv-value hl" id="kvWallet">TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE</span>
-            <button class="copy-btn" id="copyWallet" data-copy-value="TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE">
+            <span class="kv-value hl" id="kvWallet">Đang tải địa chỉ ví…</span>
+            <button class="copy-btn" id="copyWallet" data-copy-value="">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2.5"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
               <span class="copy-label">Copy</span>
             </button>
@@ -1887,6 +1886,33 @@ html[dir="rtl"] .toast{transform:translateX(-120%);}
     </div>
   </div>
 </div>
+
+<script>
+(async function loadAgentFlowPaymentConfig(){
+  try {
+    const r = await fetch('/api/payments/config', { cache: 'no-store' });
+    if (!r.ok) return;
+    const c = await r.json();
+    const bank = c.bank || {};
+    const crypto = c.crypto || {};
+    const bankName = document.getElementById('paymentBankName');
+    const holder = document.getElementById('paymentBankHolder');
+    const account = document.getElementById('paymentBankAccount');
+    if (bankName) bankName.textContent = (bank.name || 'BIDV') + (bank.branch ? ' — ' + bank.branch : '');
+    if (holder) holder.textContent = bank.accountName || 'NGUYỄN XUÂN ĐẠT';
+    if (account) account.textContent = bank.accountNo || '4430269669';
+    const wallet = crypto.address || '';
+    const walletEl = document.getElementById('kvWallet');
+    const copyWallet = document.getElementById('copyWallet');
+    if (walletEl) walletEl.textContent = wallet;
+    if (copyWallet) copyWallet.dataset.copyValue = wallet;
+    const qr = document.getElementById('qrUsdtImage');
+    if (qr && wallet) qr.src = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(wallet);
+  } catch (e) {
+    console.warn('[AgentFlow] payment config unavailable', e);
+  }
+})();
+</script>
 
 <!-- ══════════════════ AI CHAT WIDGET ══════════════════ -->
 <button class="chat-fab" id="chatFab" aria-label="Open AI assistant">
@@ -2081,7 +2107,7 @@ const T = {
     faq_q2: 'Is payOS secure?',
     faq_a2: 'payOS is a licensed payment gateway connected to over 40 Vietnamese banks. We never store your card or bank credentials.',
     faq_q3: 'Which USDT networks do you accept?',
-    faq_a3: 'TRC20 (Tron), BEP20 (BNB Chain), and ERC20 (Ethereum). TRC20 is recommended for lowest fees. Wrong-network transfers cannot be recovered.',
+    faq_a3: 'USDT-BEP20 (BNB Smart Chain). Always verify the network before sending; wrong-network transfers cannot be recovered.',
     faq_q4: "I can't code. Can I still use these?",
     faq_a4: 'Yes. Every n8n and Dify product is a one-click import — you only paste your own API keys. Video walkthroughs cover everything in plain language.',
     faq_q5: 'Refund policy?',
@@ -2211,7 +2237,7 @@ const T = {
     faq_q2: 'payOS は安全ですか？',
     faq_a2: 'payOS は 40 以上のベトナムの銀行と接続する認可済み決済ゲートウェイです。カードや銀行情報は保存しません。',
     faq_q3: '対応 USDT ネットワークは？',
-    faq_a3: 'TRC20 (Tron)、BEP20 (BNB Chain)、ERC20 (Ethereum)。TRC20 は手数料が最低でおすすめです。誤ったネットワークへの送金は復元できません。',
+    faq_a3: 'USDT-BEP20 (BNB Smart Chain)。送金前にネットワークを必ず確認してください。誤ったネットワークへの送金は復元できません。',
     faq_q4: 'コーディングできませんが使えますか？',
     faq_a4: 'はい。すべての n8n および Dify 製品はワンクリックインポート — API キーを貼るだけです。動画チュートリアルが平易な言葉で解説します。',
     faq_q5: '返金ポリシーは？',
