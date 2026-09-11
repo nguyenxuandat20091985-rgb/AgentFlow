@@ -1,0 +1,1 @@
+import{NextResponse}from"next/server";import{AI04_SEED_PRODUCTS}from"@/lib/agents/ai04/catalog";import{emptyAI04Report}from"@/lib/agents/ai04/reporting";export async function GET(){return NextResponse.json({source:"AI-04",report:emptyAI04Report(AI04_SEED_PRODUCTS.length)})}
