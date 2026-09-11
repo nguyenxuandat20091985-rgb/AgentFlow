@@ -661,13 +661,14 @@
           <!-- USDT Panel -->
           <div id="pay-panel-usdt" class="hidden space-y-4">
             <div class="bg-slate-900/60 rounded-xl p-5 border border-white/5">
-              <p class="text-xs text-slate-500 mb-2 uppercase tracking-wider" data-i18n="usdt_network">Network: TRC20 (Tron)</p>
+              <p class="text-xs text-slate-500 mb-2 uppercase tracking-wider" data-i18n="usdt_network">Network: BEP20 (BNB Smart Chain)</p>
               <div class="flex items-center gap-2 bg-black/40 rounded-lg px-3 py-2.5 font-mono text-sm text-cyan-300 break-all">
-                <span id="usdt-address" class="flex-1">TXyzAgentflowDemoWallet9kR2pLmN8qVw</span>
+                <span id="usdt-address" class="flex-1">Đang tải địa chỉ ví…</span>
                 <button onclick="copyUSDT()" class="p-1.5 rounded-md hover:bg-white/10 transition-colors shrink-0" title="Copy">
                   <i data-lucide="copy" class="w-4 h-4 text-slate-400"></i>
                 </button>
               </div>
+              <div class="mt-4 rounded-xl bg-white/5 border border-white/10 p-3 text-center"><img id="crypto-qr" alt="USDT BEP20 wallet QR" class="w-44 h-44 mx-auto rounded-lg bg-white p-2" loading="lazy" /></div>
               <p class="text-xs text-amber-400/80 mt-3 flex items-start gap-1.5">
                 <i data-lucide="alert-triangle" class="w-3.5 h-3.5 mt-0.5 shrink-0"></i>
                 <span data-i18n="usdt_warning">Send only USDT-TRC20. Wrong network = permanent loss.</span>
@@ -830,8 +831,8 @@
         payos_note: "Supports VietQR • Instant confirmation",
         payos_amount: "Amount",
         payos_content: "Transfer content",
-        usdt_network: "Network: TRC20 (Tron)",
-        usdt_warning: "Send only USDT-TRC20. Wrong network = permanent loss.",
+        usdt_network: "Network: BEP20 (BNB Smart Chain)",
+        usdt_warning: "Send only USDT-BEP20 on BNB Smart Chain. Wrong network = permanent loss.",
         usdt_amount: "Amount (USDT)",
         usdt_memo: "Memo / Order ref",
         checkout_confirm: "I have completed payment",
@@ -915,8 +916,8 @@
         payos_note: "Hỗ trợ VietQR • Xác nhận tức thì",
         payos_amount: "Số tiền",
         payos_content: "Nội dung chuyển khoản",
-        usdt_network: "Mạng: TRC20 (Tron)",
-        usdt_warning: "Chỉ gửi USDT-TRC20. Sai mạng = mất vĩnh viễn.",
+        usdt_network: "Mạng: BEP20 (BNB Smart Chain)",
+        usdt_warning: "Chỉ gửi USDT-BEP20 trên BNB Smart Chain. Sai mạng = mất vĩnh viễn.",
         usdt_amount: "Số tiền (USDT)",
         usdt_memo: "Memo / Mã đơn",
         checkout_confirm: "Tôi đã hoàn tất thanh toán",
@@ -1007,6 +1008,7 @@
       const ref = 'AF-PAY-' + Math.random().toString(36).substring(2, 8).toUpperCase();
       document.getElementById('payos-content').textContent = ref;
       document.getElementById('usdt-memo').textContent = ref;
+      loadPaymentConfig();
 
       document.getElementById('checkout-modal').classList.remove('hidden');
       document.body.style.overflow = 'hidden';
@@ -1030,6 +1032,22 @@
       document.getElementById('pay-panel-usdt').classList.toggle('hidden', method !== 'usdt');
     }
 
+    async function loadPaymentConfig() {
+      try {
+        const response = await fetch('/api/payments/config', { cache: 'no-store' });
+        if (!response.ok) throw new Error('payment config unavailable');
+        const config = await response.json();
+        const address = String(config.crypto?.address || '');
+        if (address) {
+          document.getElementById('usdt-address').textContent = address;
+          const qr = document.getElementById('crypto-qr');
+          if (qr) qr.src = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(address);
+        }
+      } catch (error) {
+        console.warn('[AgentFlow] crypto payment config unavailable', error);
+      }
+    }
+
     function copyUSDT() {
       const addr = document.getElementById('usdt-address').textContent;
       navigator.clipboard.writeText(addr).then(() => {
@@ -1048,8 +1066,8 @@
       const orderId = 'AF-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + Math.floor(1000 + Math.random() * 9000);
       const toast = document.getElementById('payment-toast');
       const msg = currentLang === 'vn'
-        ? `Đơn hàng ${orderId} đã được tạo. Kỹ thuật bắt đầu ngay.`
-        : `Order ${orderId} created. Engineering execution unlocked.`;
+        ? `Đơn hàng ${orderId} đã được ghi nhận chờ xác minh. Hệ thống chỉ mở xử lý sau khi thanh toán được xác thực.`
+        : `Order ${orderId} recorded as pending. Engineering unlocks only after payment verification.`;
       document.getElementById('toast-msg').textContent = msg;
       toast.classList.remove('hidden');
       lucide.createIcons();
