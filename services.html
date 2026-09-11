@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agentflow — Autonomous DFY Services</title>
+  <meta name="description" content="Elite remote AI engineering & automation repair. Instant diagnosis, escrow-secured delivery." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              200: '#bae6fd',
+              300: '#7dd3fc',
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+              800: '#075985',
+              900: '#0c4a6e',
+            },
+            neon: {
+              purple: '#a855f7',
+              cyan: '#22d3ee',
+              pink: '#ec4899',
+              blue: '#3b82f6'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            display: ['Cal Sans', 'Inter', 'system-ui', 'sans-serif']
+          },
+          animation: {
+            'float': 'float 6s ease-in-out infinite',
+            'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'glow': 'glow 2s ease-in-out infinite alternate',
+          },
+          keyframes: {
+            float: {
+              '0%, 100%': { transform: 'translateY(0px)' },
+              '50%': { transform: 'translateY(-12px)' }
+            },
+            glow: {
+              '0%': { boxShadow: '0 0 20px rgba(168, 85, 247, 0.3)' },
+              '100%': { boxShadow: '0 0 40px rgba(34, 211, 238, 0.5)' }
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #05070f;
+      --bg-secondary: #0a0e1a;
+      --glass: rgba(15, 23, 42, 0.55);
+      --glass-border: rgba(148, 163, 184, 0.12);
+      --neon-purple: #a855f7;
+      --neon-cyan: #22d3ee;
+    }
+    * { box-sizing: border-box; }
+    body {
+      background: var(--bg-primary);
+      color: #e2e8f0;
+      font-family: 'Inter', system-ui, sans-serif;
+      overflow-x: hidden;
+    }
+    .glass {
+      background: var(--glass);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border);
+    }
+    .glass-strong {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+    }
+    .neon-border {
+      position: relative;
+    }
+    .neon-border::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: inherit;
+      padding: 1px;
+      background: linear-gradient(135deg, rgba(168,85,247,0.5), rgba(34,211,238,0.5), rgba(59,130,246,0.4));
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+      opacity: 0.6;
+    }
+    .gradient-text {
+      background: linear-gradient(135deg, #22d3ee 0%, #a855f7 50%, #ec4899 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-glow {
+      background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(168,85,247,0.25), transparent),
+                  radial-gradient(ellipse 60% 40% at 80% 50%, rgba(34,211,238,0.12), transparent),
+                  radial-gradient(ellipse 50% 30% at 20% 80%, rgba(59,130,246,0.1), transparent);
+    }
+    .card-hover {
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .card-hover:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5), 0 0 40px rgba(168,85,247,0.15);
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #7c3aed 0%, #2563eb 50%, #0891b2 100%);
+      transition: all 0.3s ease;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px rgba(124, 58, 237, 0.4);
+    }
+    .btn-ghost {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      transition: all 0.3s ease;
+    }
+    .btn-ghost:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(168,85,247,0.4);
+    }
+    /* Chat widget */
+    .chat-bubble-user {
+      background: linear-gradient(135deg, #7c3aed, #2563eb);
+    }
+    .chat-bubble-ai {
+      background: rgba(30, 41, 59, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.15);
+    }
+    /* Modal */
+    .modal-overlay {
+      background: rgba(2, 6, 23, 0.85);
+      backdrop-filter: blur(8px);
+    }
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.3); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(148,163,184,0.5); }
+    /* Status steps */
+    .status-step.active .step-dot {
+      background: linear-gradient(135deg, #22d3ee, #a855f7);
+      box-shadow: 0 0 16px rgba(34,211,238,0.5);
+    }
+    .status-step.completed .step-dot {
+      background: #10b981;
+    }
+    .status-step.completed .step-line {
+      background: #10b981;
+    }
+    /* Language toggle */
+    .lang-active {
+      background: linear-gradient(135deg, rgba(124,58,237,0.3), rgba(37,99,235,0.3));
+      border-color: rgba(168,85,247,0.5);
+    }
+    /* Floating particles */
+    .particle {
+      position: absolute;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(168,85,247,0.4), transparent);
+      animation: float 8s ease-in-out infinite;
+      pointer-events: none;
+    }
+    /* QR code simulation */
+    .qr-placeholder {
+      background: 
+        repeating-linear-gradient(0deg, #0f172a 0, #0f172a 4px, transparent 4px, transparent 8px),
+        repeating-linear-gradient(90deg, #0f172a 0, #0f172a 4px, transparent 4px, transparent 8px);
+      background-color: #e2e8f0;
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+  <!-- Ambient particles -->
+  <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
+    <div class="particle w-64 h-64 top-20 left-10 opacity-20" style="animation-delay: 0s;"></div>
+    <div class="particle w-96 h-96 top-40 right-20 opacity-15" style="animation-delay: 2s;"></div>
+    <div class="particle w-48 h-48 bottom-40 left-1/3 opacity-20" style="animation-delay: 4s;"></div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="fixed top-0 left-0 right-0 z-50 glass-strong border-b border-white/5">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16 md:h-20">
+        <!-- Logo -->
+        <a href="#home" class="flex items-center gap-3 group">
+          <div class="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-gradient-to-br from-violet-500 via-blue-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-violet-500/30 group-hover:scale-105 transition-transform">
+            <i data-lucide="cpu" class="w-5 h-5 text-white"></i>
+          </div>
+          <div>
+            <span class="font-bold text-lg md:text-xl tracking-tight text-white">Agentflow</span>
+            <span class="hidden sm:inline text-xs text-slate-400 ml-1.5 font-medium">Autonomous DFY</span>
+          </div>
+        </a>
+
+        <!-- Desktop Nav -->
+        <div class="hidden md:flex items-center gap-8">
+          <a href="#services" class="text-sm font-medium text-slate-300 hover:text-white transition-colors" data-i18n="nav_services">Services</a>
+          <a href="#how" class="text-sm font-medium text-slate-300 hover:text-white transition-colors" data-i18n="nav_how">How it works</a>
+          <a href="#tracking" class="text-sm font-medium text-slate-300 hover:text-white transition-colors" data-i18n="nav_tracking">Track Order</a>
+          <a href="#support" class="text-sm font-medium text-slate-300 hover:text-white transition-colors" data-i18n="nav_support">AI Support</a>
+        </div>
+
+        <!-- Right actions -->
+        <div class="flex items-center gap-3">
+          <!-- Language Switcher -->
+          <div class="flex items-center glass rounded-full p-0.5 border border-white/10">
+            <button id="lang-en" onclick="setLanguage('en')" class="lang-btn px-3 py-1.5 text-xs font-semibold rounded-full transition-all lang-active">EN</button>
+            <button id="lang-vn" onclick="setLanguage('vn')" class="lang-btn px-3 py-1.5 text-xs font-semibold rounded-full transition-all text-slate-400">VN</button>
+          </div>
+          <button onclick="openCheckout(null)" class="btn-primary hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white">
+            <i data-lucide="zap" class="w-4 h-4"></i>
+            <span data-i18n="nav_cta">Get Started</span>
+          </button>
+          <!-- Mobile menu button -->
+          <button id="mobile-menu-btn" class="md:hidden p-2 rounded-lg hover:bg-white/5 transition-colors">
+            <i data-lucide="menu" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- Mobile menu -->
+    <div id="mobile-menu" class="hidden md:hidden border-t border-white/5 glass-strong">
+      <div class="px-4 py-4 space-y-2">
+        <a href="#services" class="block px-4 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-white/5" data-i18n="nav_services">Services</a>
+        <a href="#how" class="block px-4 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-white/5" data-i18n="nav_how">How it works</a>
+        <a href="#tracking" class="block px-4 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-white/5" data-i18n="nav_tracking">Track Order</a>
+        <a href="#support" class="block px-4 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-white/5" data-i18n="nav_support">AI Support</a>
+        <button onclick="openCheckout(null)" class="w-full btn-primary mt-2 px-4 py-3 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2">
+          <i data-lucide="zap" class="w-4 h-4"></i>
+          <span data-i18n="nav_cta">Get Started</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section id="home" class="relative pt-28 md:pt-36 pb-20 md:pb-28 hero-glow">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div class="text-center max-w-4xl mx-auto">
+        <!-- Badge -->
+        <div class="inline-flex items-center gap-2 glass rounded-full px-4 py-1.5 mb-8 border border-white/10">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="text-xs font-medium text-slate-300" data-i18n="hero_badge">24/7 Autonomous AI Engineering</span>
+        </div>
+
+        <h1 class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.1] mb-6">
+          <span class="text-white" data-i18n="hero_title_1">Elite AI Automation</span><br>
+          <span class="gradient-text" data-i18n="hero_title_2">Fixed. Upgraded. Delivered.</span>
+        </h1>
+
+        <p class="text-base sm:text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed" data-i18n="hero_desc">
+          Remote DFY engineering for n8n, Make, Supabase, APIs & full-stack systems. Instant diagnosis. Escrow-secured delivery. Zero fluff.
+        </p>
+
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <button onclick="document.getElementById('services').scrollIntoView({behavior:'smooth'})" class="btn-primary w-full sm:w-auto px-8 py-3.5 rounded-2xl text-base font-semibold text-white flex items-center justify-center gap-2">
+            <i data-lucide="rocket" class="w-5 h-5"></i>
+            <span data-i18n="hero_cta_primary">View Packages</span>
+          </button>
+          <button onclick="toggleChat(true)" class="btn-ghost w-full sm:w-auto px-8 py-3.5 rounded-2xl text-base font-semibold text-white flex items-center justify-center gap-2">
+            <i data-lucide="message-circle" class="w-5 h-5"></i>
+            <span data-i18n="hero_cta_secondary">Talk to AI Co-Pilot</span>
+          </button>
+        </div>
+
+        <!-- Trust indicators -->
+        <div class="mt-14 flex flex-wrap items-center justify-center gap-6 md:gap-10 text-slate-500 text-sm">
+          <div class="flex items-center gap-2">
+            <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
+            <span data-i18n="trust_escrow">Escrow Protected</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <i data-lucide="clock" class="w-4 h-4 text-cyan-400"></i>
+            <span data-i18n="trust_speed">2h – 3d Turnaround</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <i data-lucide="globe" class="w-4 h-4 text-violet-400"></i>
+            <span data-i18n="trust_global">Global + VN Support</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Services Section -->
+  <section id="services" class="py-20 md:py-28 relative">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-14">
+        <h2 class="text-3xl md:text-4xl font-bold text-white mb-4" data-i18n="services_title">Choose Your Mission</h2>
+        <p class="text-slate-400 max-w-xl mx-auto" data-i18n="services_desc">Three precision-tier packages. Clear scope. Guaranteed delivery after payment confirmation.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+        <!-- Package 1: Quick Fix -->
+        <div class="glass rounded-2xl p-6 lg:p-8 card-hover neon-border relative overflow-hidden">
+          <div class="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+          <div class="relative">
+            <div class="w-12 h-12 rounded-xl bg-cyan-500/15 flex items-center justify-center mb-5">
+              <i data-lucide="wrench" class="w-6 h-6 text-cyan-400"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2" data-i18n="pkg1_name">Quick Fix & Debug</h3>
+            <p class="text-sm text-slate-400 mb-6 leading-relaxed" data-i18n="pkg1_desc">Broken webhook? Invalid API key? Timeout errors? We isolate and repair the critical path fast.</p>
+            
+            <div class="mb-6">
+              <div class="flex items-baseline gap-2">
+                <span class="text-3xl font-extrabold text-white">$49</span>
+                <span class="text-slate-500 text-sm">/ 1,250,000đ</span>
+              </div>
+              <p class="text-xs text-cyan-400/80 mt-1 font-medium" data-i18n="pkg1_time">⏱ 2–4 hours turnaround</p>
+            </div>
+
+            <ul class="space-y-3 mb-8 text-sm text-slate-300">
+              <li class="flex items-start gap-2.5">
+                <i data-lucide="check-circle-2" class="w-4 h-4 text-cyan-400 mt-0.5 shrink-0"></i>
+                <span data-i18n="pkg1_f1">Root-cause diagnosis & fix</span>
+              </li>
+              <li class="flex items-start gap-2.5">
+                <i data-lucide="check-circle-2" class="w-4 h-4 text-cyan-400 mt-0.5 shrink-0"></i>
+                <span data-i18n="pkg1_f2">n8n / Make / API troubleshooting</span>
+              </li>
+              <li class="flex items-start gap-2.5">
+                <i data-lucide="check-circle-2" class="w-4 h-4 text-cyan-400 mt-0.5 shrink-0"></i>
+                <span data-i18n="pkg1_f3">Post-fix verification report</span>
+              </li>
+              <li class="flex items-start gap-2.5">
+                <i data-lucide="check-circle-2" class="w-4 h-4 text-cyan-400 mt-0.5 shrink-0"></i>
+                <span data-i18n="pkg1_f4">Secure handoff + docs</span>
+              </li>
+            </ul>
+
+            <button onclick="openCheckout('quick')" class="w-full btn-ghost py-3 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2">
+              <span data-i18n="pkg_select">Select Package</span>
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Package 2: Standard (Popular) -->
+        <div class="glass rounded-2xl p-6 lg:p-8 card-hover neon-border relative overflow-hidden ring-2 ring-violet-500/40 scale-[1.02] md:scale-105 z-10">
+          <div class="absolute top-0 right-0 w-40 h-40 bg-violet-500/15 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+          <div class="absolute top-4 right-4">
+            <span class="text-[10px] font-bold uppercase tracking-wider bg-gradient-to-r from-violet-500 to-blue-500 text-white px-2.5 py-1 rounded-full" data-i18n="pkg2_badge">Most Popular</span>
+          </div>
+          <div class="relative">
+            <div class="w-12 h-12 rounded-xl bg-violet-500/15 flex items-center justify-center mb-5">
+              <i data-lucide="layers" class="w-6 h-6 text-violet-400"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2" data-i18n="pkg2_name">Standard Upgrade & Integration</h3>
+            <p class="text-sm text-slate-400 mb-6 leading-relaxed" data-i18n="pkg2_desc">Add new nodes, connect systems, harden security, improve reliability and observability.</p>
+            
+            <div class="mb-6">
+              <div class="flex items-baseline gap-2">
+                <span class="text-3xl font-extrabold text-white">$149</span>
+                <span class="text-slate-500 text-sm">/ 3,800,000đ</span>
+              </div>
+              <p class="text-xs text-violet-400/80 mt-1 font-medium" data-i18n="pkg2_time">⏱ 12–24 hours turnaround</p>
+            </div>
+
+            <ul class="space-y-3 mb-8 text-sm text-slate-300">
+              <li class="flex items-start gap-2.5">
+                <i data-lucide="check-circle-2" class="w-4 h-4 text-violet-400 mt-0.5 shrink-0"></i>
+                <span data-i18n="pkg2_f1">Everything in Quick Fix</span>
+              </li>
+              <li class="flex items-start gap-2.5">
+                <i data-lucide="check-circle-2" class="w-4 h-4 text-violet-400 mt-0.5 shrink-0"></i>
+                <span data-i18n="pkg2_f2">New integrations & flows</span>
+              </li>
+              <li class="flex items-start gap-2.5">
+                <i data-lucide="check-circle-2" class="w-4 h-4 text-violet-400 mt-0.5 shrink-0"></i>
+                <span data-i18n="pkg2_f3">Error handling & retries</span>
+              </li>
+              <li class="flex items-start gap-2.5">
+                <i data-lucide="check-circle-2" class="w-4 h-4 text-violet-400 mt-0.5 shrink-0"></i>
+                <span data-i18n="pkg2_f4">Performance optimization</span>
+              </li>
+              <li class="flex items-start gap-2.5">
+                <i data-lucide="check-circle-2" class="w-4 h-4 text-violet-400 mt-0.5 shrink-0"></i>
+                <span data-i18n="pkg2_f5">Delivery + walkthrough call</span>
+              </li>
+            </ul>
+
+            <button onclick="openCheckout('standard')" class="w-full btn-primary py-3 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2">
+              <span data-i18n="pkg_select">Select Package</span>
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Package 3: Enterprise -->
+        <div class="glass rounded-2xl p-6 lg:p-8 card-hover neon-border relative overflow-hidden">
+          <div class="absolute top-0 right-0 w-32 h-32 bg-pink-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+          <div class="relative">
+            <div class="w-12 h-12 rounded-xl bg-pink-500/15 flex items-center justify-center mb-5">
+              <i data-lucide="building-2" class="w-6 h-6 text-pink-400"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2" data-i18n="pkg3_name">Enterprise Custom Architecture</h3>
+            <p class="text-sm text-slate-400 mb-6 leading-relaxed" data-i18n="pkg3_desc">Full system design, multi-agent orchestration, custom infrastructure and long-term reliability.</p>
+            
+            <div class="mb-6">
+              <div class="flex items-baseline gap-2">
+                <span class="text-3xl font-extrabold text-white">$499+</span>
+                <span class="text-slate-500 text-sm">custom</span>
+              </div>
+              <p class="text-xs text-pink-400/80 mt-1 font-medium" data-i18n="pkg3_time">⏱ 2–3 days turnaround</p>
+            </div>
+
+            <ul class="space-y-3 mb-8 text-sm text-slate-300">
+              <li class="flex items-start gap-2.5">
+                <i data-lucide="check-circle-2" class="w-4 h-4 text-pink-400 mt-0.5 shrink-0"></i>
+                <span data-i18n="pkg3_f1">Architecture & system design</span>
+              </li>
+              <li class="flex items-start gap-2.5">
+                <i data-lucide="check-circle-2" class="w-4 h-4 text-pink-400 mt-0.5 shrink-0"></i>
+                <span data-i18n="pkg3_f2">Multi-agent / complex workflows</span>
+              </li>
+              <li class="flex items-start gap-2.5">
+                <i data-lucide="check-circle-2" class="w-4 h-4 text-pink-400 mt-0.5 shrink-0"></i>
+                <span data-i18n="pkg3_f3">Security & compliance review</span>
+              </li>
+              <li class="flex items-start gap-2.5">
+                <i data-lucide="check-circle-2" class="w-4 h-4 text-pink-400 mt-0.5 shrink-0"></i>
+                <span data-i18n="pkg3_f4">Priority support channel</span>
+              </li>
+              <li class="flex items-start gap-2.5">
+                <i data-lucide="check-circle-2" class="w-4 h-4 text-pink-400 mt-0.5 shrink-0"></i>
+                <span data-i18n="pkg3_f5">Dedicated engineer allocation</span>
+              </li>
+            </ul>
+
+            <button onclick="openCheckout('enterprise')" class="w-full btn-ghost py-3 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2">
+              <span data-i18n="pkg_select">Select Package</span>
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it Works -->
+  <section id="how" class="py-20 md:py-28 relative">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-14">
+        <h2 class="text-3xl md:text-4xl font-bold text-white mb-4" data-i18n="how_title">Escrow & Completion Protocol</h2>
+        <p class="text-slate-400 max-w-xl mx-auto" data-i18n="how_desc">Engineering starts only after payment verification. Transparent, secure, zero surprises.</p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="glass rounded-2xl p-6 text-center card-hover">
+          <div class="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 flex items-center justify-center mb-4">
+            <span class="text-xl font-bold text-cyan-400">01</span>
+          </div>
+          <h3 class="font-semibold text-white mb-2" data-i18n="how_s1_title">Select & Pay</h3>
+          <p class="text-sm text-slate-400" data-i18n="how_s1_desc">Choose package → pay via payOS (VN) or USDT. Instant confirmation.</p>
+        </div>
+        <div class="glass rounded-2xl p-6 text-center card-hover">
+          <div class="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 flex items-center justify-center mb-4">
+            <span class="text-xl font-bold text-violet-400">02</span>
+          </div>
+          <h3 class="font-semibold text-white mb-2" data-i18n="how_s2_title">Secure Handoff</h3>
+          <p class="text-sm text-slate-400" data-i18n="how_s2_desc">You receive Order ID + secure token. Share access / repo / credentials safely.</p>
+        </div>
+        <div class="glass rounded-2xl p-6 text-center card-hover">
+          <div class="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 flex items-center justify-center mb-4">
+            <span class="text-xl font-bold text-blue-400">03</span>
+          </div>
+          <h3 class="font-semibold text-white mb-2" data-i18n="how_s3_title">AI + Human Execution</h3>
+          <p class="text-sm text-slate-400" data-i18n="how_s3_desc">Autonomous agent routes task. Senior engineer executes & verifies.</p>
+        </div>
+        <div class="glass rounded-2xl p-6 text-center card-hover">
+          <div class="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center mb-4">
+            <span class="text-xl font-bold text-emerald-400">04</span>
+          </div>
+          <h3 class="font-semibold text-white mb-2" data-i18n="how_s4_title">Deliver & Close</h3>
+          <p class="text-sm text-slate-400" data-i18n="how_s4_desc">Live status updates → final delivery + docs. Escrow released on completion.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tracking Section -->
+  <section id="tracking" class="py-20 md:py-28 relative">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-10">
+        <h2 class="text-3xl md:text-4xl font-bold text-white mb-4" data-i18n="track_title">Real-time Project Tracking</h2>
+        <p class="text-slate-400" data-i18n="track_desc">Enter your Order ID or Ticket Number to view live progress.</p>
+      </div>
+
+      <div class="glass rounded-2xl p-6 md:p-8 neon-border">
+        <div class="flex flex-col sm:flex-row gap-3 mb-8">
+          <input id="order-input" type="text" placeholder="e.g. AF-20260911-8842" class="flex-1 bg-slate-900/60 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500/50 transition-all" data-i18n-placeholder="track_placeholder">
+          <button onclick="trackOrder()" class="btn-primary px-6 py-3 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 whitespace-nowrap">
+            <i data-lucide="search" class="w-4 h-4"></i>
+            <span data-i18n="track_btn">Track</span>
+          </button>
+        </div>
+
+        <!-- Status Result (hidden by default) -->
+        <div id="track-result" class="hidden">
+          <div class="flex items-center justify-between mb-6">
+            <div>
+              <p class="text-xs text-slate-500 uppercase tracking-wider mb-1" data-i18n="track_order_label">Order</p>
+              <p id="track-order-id" class="font-mono font-semibold text-white">AF-20260911-8842</p>
+            </div>
+            <div id="track-status-badge" class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+              In Progress
+            </div>
+          </div>
+
+          <!-- Progress Steps -->
+          <div class="space-y-0">
+            <div class="status-step completed flex gap-4">
+              <div class="flex flex-col items-center">
+                <div class="step-dot w-3.5 h-3.5 rounded-full bg-emerald-500 shrink-0"></div>
+                <div class="step-line w-0.5 h-12 bg-emerald-500/50"></div>
+              </div>
+              <div class="pb-8">
+                <p class="text-sm font-semibold text-white" data-i18n="track_s1">Step 1: Payment Confirmed</p>
+                <p class="text-xs text-slate-500 mt-0.5">Verified via payOS / USDT</p>
+              </div>
+            </div>
+            <div class="status-step active flex gap-4">
+              <div class="flex flex-col items-center">
+                <div class="step-dot w-3.5 h-3.5 rounded-full bg-slate-600 shrink-0"></div>
+                <div class="step-line w-0.5 h-12 bg-slate-700"></div>
+              </div>
+              <div class="pb-8">
+                <p class="text-sm font-semibold text-white" data-i18n="track_s2">Step 2: AI Code Audit in Progress</p>
+                <p class="text-xs text-slate-500 mt-0.5">Automated analysis + engineer review</p>
+              </div>
+            </div>
+            <div class="status-step flex gap-4">
+              <div class="flex flex-col items-center">
+                <div class="step-dot w-3.5 h-3.5 rounded-full bg-slate-600 shrink-0"></div>
+                <div class="step-line w-0.5 h-12 bg-slate-700"></div>
+              </div>
+              <div class="pb-8">
+                <p class="text-sm font-semibold text-slate-400" data-i18n="track_s3">Step 3: Verification Testing</p>
+                <p class="text-xs text-slate-600 mt-0.5">Unit + integration checks</p>
+              </div>
+            </div>
+            <div class="status-step flex gap-4">
+              <div class="flex flex-col items-center">
+                <div class="step-dot w-3.5 h-3.5 rounded-full bg-slate-600 shrink-0"></div>
+              </div>
+              <div>
+                <p class="text-sm font-semibold text-slate-400" data-i18n="track_s4">Completed & Delivered</p>
+                <p class="text-xs text-slate-600 mt-0.5">Final assets + documentation</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="track-empty" class="text-center py-6">
+          <i data-lucide="package-search" class="w-10 h-10 text-slate-600 mx-auto mb-3"></i>
+          <p class="text-sm text-slate-500" data-i18n="track_empty">Enter a valid Order ID to see live status</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="border-t border-white/5 py-12 mt-10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 via-blue-500 to-cyan-400 flex items-center justify-center">
+            <i data-lucide="cpu" class="w-4 h-4 text-white"></i>
+          </div>
+          <span class="font-bold text-white">Agentflow</span>
+        </div>
+        <p class="text-sm text-slate-500 text-center" data-i18n="footer_text">© 2026 Agentflow Autonomous DFY Services. Escrow-secured. Execution begins after payment verification.</p>
+        <div class="flex items-center gap-4 text-slate-500">
+          <a href="#support" class="hover:text-white transition-colors text-sm" data-i18n="footer_support">24/7 Support</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ===================== CHECKOUT MODAL ===================== -->
+  <div id="checkout-modal" class="fixed inset-0 z-[100] hidden">
+    <div class="modal-overlay absolute inset-0" onclick="closeCheckout()"></div>
+    <div class="absolute inset-0 flex items-center justify-center p-4">
+      <div class="glass-strong rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto relative neon-border shadow-2xl">
+        <button onclick="closeCheckout()" class="absolute top-4 right-4 p-2 rounded-lg hover:bg-white/10 transition-colors z-10">
+          <i data-lucide="x" class="w-5 h-5 text-slate-400"></i>
+        </button>
+
+        <div class="p-6 md:p-8">
+          <h3 class="text-xl font-bold text-white mb-1" data-i18n="checkout_title">Secure Checkout</h3>
+          <p class="text-sm text-slate-400 mb-6" data-i18n="checkout_desc">Payment verification required before any engineering work begins.</p>
+
+          <!-- Selected Package Info -->
+          <div id="checkout-pkg-info" class="glass rounded-xl p-4 mb-6 border border-white/10">
+            <div class="flex items-center justify-between">
+              <div>
+                <p id="checkout-pkg-name" class="font-semibold text-white">Standard Upgrade</p>
+                <p id="checkout-pkg-time" class="text-xs text-slate-400 mt-0.5">12–24 hours</p>
+              </div>
+              <div class="text-right">
+                <p id="checkout-pkg-price" class="text-xl font-bold text-white">$149</p>
+                <p id="checkout-pkg-price-vn" class="text-xs text-slate-500">3,800,000đ</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Payment Method Tabs -->
+          <div class="flex gap-2 mb-6">
+            <button id="pay-tab-payos" onclick="setPayMethod('payos')" class="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all border border-violet-500/50 bg-violet-500/15 text-white">
+              payOS (VN)
+            </button>
+            <button id="pay-tab-usdt" onclick="setPayMethod('usdt')" class="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all border border-white/10 text-slate-400 hover:border-white/20">
+              USDT / Crypto
+            </button>
+          </div>
+
+          <!-- payOS Panel -->
+          <div id="pay-panel-payos" class="space-y-4">
+            <div class="bg-slate-900/60 rounded-xl p-5 border border-white/5 text-center">
+              <div class="qr-placeholder w-44 h-44 mx-auto rounded-xl mb-4 flex items-center justify-center relative overflow-hidden">
+                <div class="absolute inset-3 bg-white rounded-lg flex items-center justify-center">
+                  <div class="text-center">
+                    <i data-lucide="qr-code" class="w-16 h-16 text-slate-800 mx-auto"></i>
+                    <p class="text-[10px] text-slate-500 mt-1 font-mono">payOS QR</p>
+                  </div>
+                </div>
+              </div>
+              <p class="text-sm text-slate-300 mb-1" data-i18n="payos_scan">Scan QR with your banking app</p>
+              <p class="text-xs text-slate-500" data-i18n="payos_note">Supports VietQR • Instant confirmation</p>
+            </div>
+            <div class="glass rounded-xl p-4 text-sm space-y-2">
+              <div class="flex justify-between">
+                <span class="text-slate-400" data-i18n="payos_amount">Amount</span>
+                <span id="payos-amount" class="font-semibold text-white">3,800,000đ</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-400" data-i18n="payos_content">Transfer content</span>
+                <span id="payos-content" class="font-mono text-cyan-400 text-xs">AF-PAY-XXXX</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- USDT Panel -->
+          <div id="pay-panel-usdt" class="hidden space-y-4">
+            <div class="bg-slate-900/60 rounded-xl p-5 border border-white/5">
+              <p class="text-xs text-slate-500 mb-2 uppercase tracking-wider" data-i18n="usdt_network">Network: TRC20 (Tron)</p>
+              <div class="flex items-center gap-2 bg-black/40 rounded-lg px-3 py-2.5 font-mono text-sm text-cyan-300 break-all">
+                <span id="usdt-address" class="flex-1">TXyzAgentflowDemoWallet9kR2pLmN8qVw</span>
+                <button onclick="copyUSDT()" class="p-1.5 rounded-md hover:bg-white/10 transition-colors shrink-0" title="Copy">
+                  <i data-lucide="copy" class="w-4 h-4 text-slate-400"></i>
+                </button>
+              </div>
+              <p class="text-xs text-amber-400/80 mt-3 flex items-start gap-1.5">
+                <i data-lucide="alert-triangle" class="w-3.5 h-3.5 mt-0.5 shrink-0"></i>
+                <span data-i18n="usdt_warning">Send only USDT-TRC20. Wrong network = permanent loss.</span>
+              </p>
+            </div>
+            <div class="glass rounded-xl p-4 text-sm space-y-2">
+              <div class="flex justify-between">
+                <span class="text-slate-400" data-i18n="usdt_amount">Amount (USDT)</span>
+                <span id="usdt-amount" class="font-semibold text-white">149.00 USDT</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-400" data-i18n="usdt_memo">Memo / Order ref</span>
+                <span id="usdt-memo" class="font-mono text-cyan-400 text-xs">AF-PAY-XXXX</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Confirm Payment Simulation -->
+          <button onclick="simulatePayment()" class="w-full btn-primary mt-6 py-3.5 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2">
+            <i data-lucide="shield-check" class="w-4 h-4"></i>
+            <span data-i18n="checkout_confirm">I have completed payment</span>
+          </button>
+          <p class="text-[11px] text-slate-500 text-center mt-3" data-i18n="checkout_escrow_note">Escrow protocol active. Work starts only after on-chain / bank confirmation.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== AI CHAT WIDGET ===================== -->
+  <div id="chat-widget" class="fixed bottom-6 right-6 z-[90] flex flex-col items-end gap-3">
+    <!-- Chat Window -->
+    <div id="chat-window" class="hidden glass-strong rounded-2xl w-[340px] sm:w-[380px] h-[480px] flex flex-col shadow-2xl border border-white/10 overflow-hidden">
+      <!-- Header -->
+      <div class="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-gradient-to-r from-violet-600/20 to-blue-600/20">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-cyan-400 flex items-center justify-center">
+            <i data-lucide="bot" class="w-5 h-5 text-white"></i>
+          </div>
+          <div>
+            <p class="text-sm font-semibold text-white">Agentflow AI Co-Pilot</p>
+            <p class="text-[11px] text-emerald-400 flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span data-i18n="chat_online">Online 24/7</span>
+            </p>
+          </div>
+        </div>
+        <button onclick="toggleChat(false)" class="p-1.5 rounded-lg hover:bg-white/10 transition-colors">
+          <i data-lucide="x" class="w-4 h-4 text-slate-400"></i>
+        </button>
+      </div>
+
+      <!-- Messages -->
+      <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3">
+        <!-- Initial message injected by JS -->
+      </div>
+
+      <!-- Input -->
+      <div class="p-3 border-t border-white/10">
+        <div class="flex gap-2">
+          <input id="chat-input" type="text" placeholder="Describe your error..." class="flex-1 bg-slate-900/70 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500/40 transition-all" data-i18n-placeholder="chat_placeholder" onkeydown="if(event.key==='Enter') sendChat()">
+          <button onclick="sendChat()" class="btn-primary p-2.5 rounded-xl shrink-0">
+            <i data-lucide="send" class="w-4 h-4 text-white"></i>
+          </button>
+        </div>
+        <p class="text-[10px] text-slate-600 mt-2 text-center" data-i18n="chat_hint">Try: "n8n webhook timeout" or "Supabase connection error"</p>
+      </div>
+    </div>
+
+    <!-- Floating Button -->
+    <button id="chat-toggle" onclick="toggleChat()" class="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-600 via-blue-600 to-cyan-500 shadow-lg shadow-violet-500/40 flex items-center justify-center hover:scale-105 transition-transform relative">
+      <i data-lucide="message-circle" class="w-6 h-6 text-white" id="chat-icon-open"></i>
+      <i data-lucide="x" class="w-6 h-6 text-white hidden" id="chat-icon-close"></i>
+      <span class="absolute -top-1 -right-1 w-4 h-4 bg-emerald-400 rounded-full border-2 border-[#05070f] animate-pulse"></span>
+    </button>
+  </div>
+
+  <!-- Payment Success Toast -->
+  <div id="payment-toast" class="fixed top-24 left-1/2 -translate-x-1/2 z-[110] hidden">
+    <div class="glass-strong rounded-2xl px-6 py-4 border border-emerald-500/30 shadow-2xl flex items-center gap-3 max-w-md">
+      <div class="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
+        <i data-lucide="check" class="w-5 h-5 text-emerald-400"></i>
+      </div>
+      <div>
+        <p class="font-semibold text-white text-sm" data-i18n="toast_title">Payment Verified</p>
+        <p class="text-xs text-slate-400 mt-0.5" id="toast-msg">Order created. Engineering execution unlocked.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===================== i18n ENGINE =====================
+    const translations = {
+      en: {
+        nav_services: "Services",
+        nav_how: "How it works",
+        nav_tracking: "Track Order",
+        nav_support: "AI Support",
+        nav_cta: "Get Started",
+        hero_badge: "24/7 Autonomous AI Engineering",
+        hero_title_1: "Elite AI Automation",
+        hero_title_2: "Fixed. Upgraded. Delivered.",
+        hero_desc: "Remote DFY engineering for n8n, Make, Supabase, APIs & full-stack systems. Instant diagnosis. Escrow-secured delivery. Zero fluff.",
+        hero_cta_primary: "View Packages",
+        hero_cta_secondary: "Talk to AI Co-Pilot",
+        trust_escrow: "Escrow Protected",
+        trust_speed: "2h – 3d Turnaround",
+        trust_global: "Global + VN Support",
+        services_title: "Choose Your Mission",
+        services_desc: "Three precision-tier packages. Clear scope. Guaranteed delivery after payment confirmation.",
+        pkg1_name: "Quick Fix & Debug",
+        pkg1_desc: "Broken webhook? Invalid API key? Timeout errors? We isolate and repair the critical path fast.",
+        pkg1_time: "⏱ 2–4 hours turnaround",
+        pkg1_f1: "Root-cause diagnosis & fix",
+        pkg1_f2: "n8n / Make / API troubleshooting",
+        pkg1_f3: "Post-fix verification report",
+        pkg1_f4: "Secure handoff + docs",
+        pkg2_name: "Standard Upgrade & Integration",
+        pkg2_desc: "Add new nodes, connect systems, harden security, improve reliability and observability.",
+        pkg2_badge: "Most Popular",
+        pkg2_time: "⏱ 12–24 hours turnaround",
+        pkg2_f1: "Everything in Quick Fix",
+        pkg2_f2: "New integrations & flows",
+        pkg2_f3: "Error handling & retries",
+        pkg2_f4: "Performance optimization",
+        pkg2_f5: "Delivery + walkthrough call",
+        pkg3_name: "Enterprise Custom Architecture",
+        pkg3_desc: "Full system design, multi-agent orchestration, custom infrastructure and long-term reliability.",
+        pkg3_time: "⏱ 2–3 days turnaround",
+        pkg3_f1: "Architecture & system design",
+        pkg3_f2: "Multi-agent / complex workflows",
+        pkg3_f3: "Security & compliance review",
+        pkg3_f4: "Priority support channel",
+        pkg3_f5: "Dedicated engineer allocation",
+        pkg_select: "Select Package",
+        how_title: "Escrow & Completion Protocol",
+        how_desc: "Engineering starts only after payment verification. Transparent, secure, zero surprises.",
+        how_s1_title: "Select & Pay",
+        how_s1_desc: "Choose package → pay via payOS (VN) or USDT. Instant confirmation.",
+        how_s2_title: "Secure Handoff",
+        how_s2_desc: "You receive Order ID + secure token. Share access / repo / credentials safely.",
+        how_s3_title: "AI + Human Execution",
+        how_s3_desc: "Autonomous agent routes task. Senior engineer executes & verifies.",
+        how_s4_title: "Deliver & Close",
+        how_s4_desc: "Live status updates → final delivery + docs. Escrow released on completion.",
+        track_title: "Real-time Project Tracking",
+        track_desc: "Enter your Order ID or Ticket Number to view live progress.",
+        track_placeholder: "e.g. AF-20260911-8842",
+        track_btn: "Track",
+        track_order_label: "Order",
+        track_s1: "Step 1: Payment Confirmed",
+        track_s2: "Step 2: AI Code Audit in Progress",
+        track_s3: "Step 3: Verification Testing",
+        track_s4: "Completed & Delivered",
+        track_empty: "Enter a valid Order ID to see live status",
+        footer_text: "© 2026 Agentflow Autonomous DFY Services. Escrow-secured. Execution begins after payment verification.",
+        footer_support: "24/7 Support",
+        checkout_title: "Secure Checkout",
+        checkout_desc: "Payment verification required before any engineering work begins.",
+        payos_scan: "Scan QR with your banking app",
+        payos_note: "Supports VietQR • Instant confirmation",
+        payos_amount: "Amount",
+        payos_content: "Transfer content",
+        usdt_network: "Network: TRC20 (Tron)",
+        usdt_warning: "Send only USDT-TRC20. Wrong network = permanent loss.",
+        usdt_amount: "Amount (USDT)",
+        usdt_memo: "Memo / Order ref",
+        checkout_confirm: "I have completed payment",
+        checkout_escrow_note: "Escrow protocol active. Work starts only after on-chain / bank confirmation.",
+        chat_online: "Online 24/7",
+        chat_placeholder: "Describe your error...",
+        chat_hint: "Try: \"n8n webhook timeout\" or \"Supabase connection error\"",
+        toast_title: "Payment Verified",
+        chat_welcome: "Hi! I'm Agentflow AI Co-Pilot. Describe any error (webhook timeout, API key invalid, Supabase issues...) and I'll diagnose + recommend the right package.",
+        chat_fallback: "I understand. For complex or custom issues, the Standard or Enterprise package is recommended. Would you like me to open the checkout for you?",
+        track_status_progress: "In Progress",
+        track_status_done: "Completed"
+      },
+      vn: {
+        nav_services: "Dịch vụ",
+        nav_how: "Quy trình",
+        nav_tracking: "Theo dõi đơn",
+        nav_support: "Hỗ trợ AI",
+        nav_cta: "Bắt đầu ngay",
+        hero_badge: "Kỹ thuật AI tự động 24/7",
+        hero_title_1: "Tự động hóa AI cao cấp",
+        hero_title_2: "Sửa. Nâng cấp. Bàn giao.",
+        hero_desc: "DFY từ xa cho n8n, Make, Supabase, API & hệ thống full-stack. Chẩn đoán tức thì. Bàn giao bảo mật escrow. Không rườm rà.",
+        hero_cta_primary: "Xem gói dịch vụ",
+        hero_cta_secondary: "Chat với AI Co-Pilot",
+        trust_escrow: "Bảo vệ Escrow",
+        trust_speed: "Xử lý 2h – 3 ngày",
+        trust_global: "Hỗ trợ Global + VN",
+        services_title: "Chọn nhiệm vụ của bạn",
+        services_desc: "Ba gói chính xác. Phạm vi rõ ràng. Bàn giao đảm bảo sau khi xác nhận thanh toán.",
+        pkg1_name: "Sửa lỗi nhanh & Debug",
+        pkg1_desc: "Webhook lỗi? API key sai? Timeout? Chúng tôi khoanh vùng và sửa đường dẫn quan trọng nhanh chóng.",
+        pkg1_time: "⏱ Xử lý trong 2–4 giờ",
+        pkg1_f1: "Chẩn đoán nguyên nhân gốc & sửa",
+        pkg1_f2: "Xử lý sự cố n8n / Make / API",
+        pkg1_f3: "Báo cáo xác minh sau sửa",
+        pkg1_f4: "Bàn giao bảo mật + tài liệu",
+        pkg2_name: "Nâng cấp & Tích hợp chuẩn",
+        pkg2_desc: "Thêm node mới, kết nối hệ thống, tăng bảo mật, cải thiện độ tin cậy và quan sát.",
+        pkg2_badge: "Phổ biến nhất",
+        pkg2_time: "⏱ Xử lý trong 12–24 giờ",
+        pkg2_f1: "Bao gồm toàn bộ Quick Fix",
+        pkg2_f2: "Tích hợp & luồng mới",
+        pkg2_f3: "Xử lý lỗi & cơ chế retry",
+        pkg2_f4: "Tối ưu hiệu suất",
+        pkg2_f5: "Bàn giao + cuộc gọi hướng dẫn",
+        pkg3_name: "Kiến trúc tùy chỉnh Enterprise",
+        pkg3_desc: "Thiết kế hệ thống đầy đủ, điều phối multi-agent, hạ tầng tùy chỉnh và độ tin cậy dài hạn.",
+        pkg3_time: "⏱ Xử lý trong 2–3 ngày",
+        pkg3_f1: "Thiết kế kiến trúc & hệ thống",
+        pkg3_f2: "Multi-agent / workflow phức tạp",
+        pkg3_f3: "Rà soát bảo mật & tuân thủ",
+        pkg3_f4: "Kênh hỗ trợ ưu tiên",
+        pkg3_f5: "Phân bổ kỹ sư chuyên trách",
+        pkg_select: "Chọn gói",
+        how_title: "Giao thức Escrow & Hoàn thành",
+        how_desc: "Kỹ thuật chỉ bắt đầu sau khi xác minh thanh toán. Minh bạch, an toàn, không bất ngờ.",
+        how_s1_title: "Chọn & Thanh toán",
+        how_s1_desc: "Chọn gói → thanh toán qua payOS (VN) hoặc USDT. Xác nhận tức thì.",
+        how_s2_title: "Bàn giao bảo mật",
+        how_s2_desc: "Nhận Order ID + token bảo mật. Chia sẻ quyền truy cập / repo / credentials an toàn.",
+        how_s3_title: "AI + Kỹ sư thực thi",
+        how_s3_desc: "Agent tự động điều phối. Kỹ sư senior thực hiện & xác minh.",
+        how_s4_title: "Bàn giao & Đóng",
+        how_s4_desc: "Cập nhật trạng thái trực tiếp → bàn giao cuối + docs. Escrow giải phóng khi hoàn thành.",
+        track_title: "Theo dõi dự án thời gian thực",
+        track_desc: "Nhập Order ID hoặc Ticket Number để xem tiến độ trực tiếp.",
+        track_placeholder: "vd: AF-20260911-8842",
+        track_btn: "Theo dõi",
+        track_order_label: "Đơn hàng",
+        track_s1: "Bước 1: Đã xác nhận thanh toán",
+        track_s2: "Bước 2: AI đang audit code",
+        track_s3: "Bước 3: Kiểm thử xác minh",
+        track_s4: "Hoàn thành & Đã bàn giao",
+        track_empty: "Nhập Order ID hợp lệ để xem trạng thái",
+        footer_text: "© 2026 Agentflow Autonomous DFY Services. Bảo mật Escrow. Thực thi chỉ sau khi xác minh thanh toán.",
+        footer_support: "Hỗ trợ 24/7",
+        checkout_title: "Thanh toán bảo mật",
+        checkout_desc: "Cần xác minh thanh toán trước khi bất kỳ công việc kỹ thuật nào bắt đầu.",
+        payos_scan: "Quét QR bằng app ngân hàng",
+        payos_note: "Hỗ trợ VietQR • Xác nhận tức thì",
+        payos_amount: "Số tiền",
+        payos_content: "Nội dung chuyển khoản",
+        usdt_network: "Mạng: TRC20 (Tron)",
+        usdt_warning: "Chỉ gửi USDT-TRC20. Sai mạng = mất vĩnh viễn.",
+        usdt_amount: "Số tiền (USDT)",
+        usdt_memo: "Memo / Mã đơn",
+        checkout_confirm: "Tôi đã hoàn tất thanh toán",
+        checkout_escrow_note: "Giao thức Escrow đang hoạt động. Công việc chỉ bắt đầu sau xác nhận ngân hàng / on-chain.",
+        chat_online: "Trực tuyến 24/7",
+        chat_placeholder: "Mô tả lỗi của bạn...",
+        chat_hint: "Thử: \"n8n webhook timeout\" hoặc \"Supabase connection error\"",
+        toast_title: "Đã xác minh thanh toán",
+        chat_welcome: "Xin chào! Tôi là Agentflow AI Co-Pilot. Mô tả bất kỳ lỗi nào (webhook timeout, API key invalid, lỗi Supabase...) — tôi sẽ chẩn đoán và đề xuất gói phù hợp.",
+        chat_fallback: "Tôi hiểu. Với vấn đề phức tạp hoặc tùy chỉnh, nên chọn gói Standard hoặc Enterprise. Bạn muốn tôi mở trang thanh toán không?",
+        track_status_progress: "Đang xử lý",
+        track_status_done: "Hoàn thành"
+      }
+    };
+
+    let currentLang = 'en';
+    let selectedPackage = null;
+    let currentPayMethod = 'payos';
+
+    const packages = {
+      quick: {
+        name: { en: "Quick Fix & Debug", vn: "Sửa lỗi nhanh & Debug" },
+        price: "$49",
+        priceVn: "1,250,000đ",
+        time: { en: "2–4 hours", vn: "2–4 giờ" },
+        usdt: "49.00"
+      },
+      standard: {
+        name: { en: "Standard Upgrade & Integration", vn: "Nâng cấp & Tích hợp chuẩn" },
+        price: "$149",
+        priceVn: "3,800,000đ",
+        time: { en: "12–24 hours", vn: "12–24 giờ" },
+        usdt: "149.00"
+      },
+      enterprise: {
+        name: { en: "Enterprise Custom Architecture", vn: "Kiến trúc tùy chỉnh Enterprise" },
+        price: "$499+",
+        priceVn: "Custom",
+        time: { en: "2–3 days", vn: "2–3 ngày" },
+        usdt: "499.00+"
+      }
+    };
+
+    function setLanguage(lang) {
+      currentLang = lang;
+      document.getElementById('lang-en').classList.toggle('lang-active', lang === 'en');
+      document.getElementById('lang-vn').classList.toggle('lang-active', lang === 'vn');
+      document.getElementById('lang-en').classList.toggle('text-slate-400', lang !== 'en');
+      document.getElementById('lang-vn').classList.toggle('text-slate-400', lang !== 'vn');
+
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (translations[lang][key]) el.textContent = translations[lang][key];
+      });
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (translations[lang][key]) el.placeholder = translations[lang][key];
+      });
+
+      // Update chat welcome if empty
+      const msgs = document.getElementById('chat-messages');
+      if (msgs.children.length <= 1) {
+        msgs.innerHTML = '';
+        appendAIMessage(translations[lang].chat_welcome);
+      }
+    }
+
+    // ===================== MOBILE MENU =====================
+    document.getElementById('mobile-menu-btn').addEventListener('click', () => {
+      const menu = document.getElementById('mobile-menu');
+      menu.classList.toggle('hidden');
+    });
+    document.querySelectorAll('#mobile-menu a').forEach(a => {
+      a.addEventListener('click', () => document.getElementById('mobile-menu').classList.add('hidden'));
+    });
+
+    // ===================== CHECKOUT =====================
+    function openCheckout(pkgKey) {
+      selectedPackage = pkgKey || 'standard';
+      const pkg = packages[selectedPackage];
+      document.getElementById('checkout-pkg-name').textContent = pkg.name[currentLang];
+      document.getElementById('checkout-pkg-time').textContent = pkg.time[currentLang];
+      document.getElementById('checkout-pkg-price').textContent = pkg.price;
+      document.getElementById('checkout-pkg-price-vn').textContent = pkg.priceVn;
+      document.getElementById('payos-amount').textContent = pkg.priceVn;
+      document.getElementById('usdt-amount').textContent = pkg.usdt + ' USDT';
+
+      const ref = 'AF-PAY-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+      document.getElementById('payos-content').textContent = ref;
+      document.getElementById('usdt-memo').textContent = ref;
+
+      document.getElementById('checkout-modal').classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+      lucide.createIcons();
+    }
+
+    function closeCheckout() {
+      document.getElementById('checkout-modal').classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+
+    function setPayMethod(method) {
+      currentPayMethod = method;
+      document.getElementById('pay-tab-payos').className = method === 'payos'
+        ? 'flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all border border-violet-500/50 bg-violet-500/15 text-white'
+        : 'flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all border border-white/10 text-slate-400 hover:border-white/20';
+      document.getElementById('pay-tab-usdt').className = method === 'usdt'
+        ? 'flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all border border-violet-500/50 bg-violet-500/15 text-white'
+        : 'flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all border border-white/10 text-slate-400 hover:border-white/20';
+      document.getElementById('pay-panel-payos').classList.toggle('hidden', method !== 'payos');
+      document.getElementById('pay-panel-usdt').classList.toggle('hidden', method !== 'usdt');
+    }
+
+    function copyUSDT() {
+      const addr = document.getElementById('usdt-address').textContent;
+      navigator.clipboard.writeText(addr).then(() => {
+        const btn = event.currentTarget;
+        btn.innerHTML = '<i data-lucide="check" class="w-4 h-4 text-emerald-400"></i>';
+        lucide.createIcons();
+        setTimeout(() => {
+          btn.innerHTML = '<i data-lucide="copy" class="w-4 h-4 text-slate-400"></i>';
+          lucide.createIcons();
+        }, 1500);
+      });
+    }
+
+    function simulatePayment() {
+      closeCheckout();
+      const orderId = 'AF-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + Math.floor(1000 + Math.random() * 9000);
+      const toast = document.getElementById('payment-toast');
+      const msg = currentLang === 'vn'
+        ? `Đơn hàng ${orderId} đã được tạo. Kỹ thuật bắt đầu ngay.`
+        : `Order ${orderId} created. Engineering execution unlocked.`;
+      document.getElementById('toast-msg').textContent = msg;
+      toast.classList.remove('hidden');
+      lucide.createIcons();
+      setTimeout(() => toast.classList.add('hidden'), 4500);
+
+      // Pre-fill tracking
+      document.getElementById('order-input').value = orderId;
+    }
+
+    // ===================== TRACKING =====================
+    function trackOrder() {
+      const input = document.getElementById('order-input').value.trim();
+      if (!input) return;
+
+      document.getElementById('track-empty').classList.add('hidden');
+      document.getElementById('track-result').classList.remove('hidden');
+      document.getElementById('track-order-id').textContent = input.toUpperCase();
+
+      // Simulate different statuses based on input
+      const steps = document.querySelectorAll('.status-step');
+      steps.forEach(s => {
+        s.classList.remove('completed', 'active');
+        s.querySelector('.step-dot').className = 'step-dot w-3.5 h-3.5 rounded-full bg-slate-600 shrink-0';
+        const line = s.querySelector('.step-line');
+        if (line) line.className = 'step-line w-0.5 h-12 bg-slate-700';
+      });
+
+      // Default demo: step 2 active
+      steps[0].classList.add('completed');
+      steps[0].querySelector('.step-dot').className = 'step-dot w-3.5 h-3.5 rounded-full bg-emerald-500 shrink-0';
+      if (steps[0].querySelector('.step-line')) steps[0].querySelector('.step-line').className = 'step-line w-0.5 h-12 bg-emerald-500/50';
+      steps[1].classList.add('active');
+      steps[1].querySelector('.step-dot').className = 'step-dot w-3.5 h-3.5 rounded-full shrink-0';
+      steps[1].querySelector('.step-dot').style.background = 'linear-gradient(135deg, #22d3ee, #a855f7)';
+
+      const badge = document.getElementById('track-status-badge');
+      badge.textContent = translations[currentLang].track_status_progress;
+      badge.className = 'px-3 py-1 rounded-full text-xs font-semibold bg-cyan-500/15 text-cyan-400 border border-cyan-500/30';
+      lucide.createIcons();
+    }
+
+    // ===================== AI CHAT =====================
+    let chatOpen = false;
+
+    function toggleChat(force) {
+      chatOpen = force !== undefined ? force : !chatOpen;
+      const win = document.getElementById('chat-window');
+      const iconOpen = document.getElementById('chat-icon-open');
+      const iconClose = document.getElementById('chat-icon-close');
+      if (chatOpen) {
+        win.classList.remove('hidden');
+        win.classList.add('flex');
+        iconOpen.classList.add('hidden');
+        iconClose.classList.remove('hidden');
+        if (document.getElementById('chat-messages').children.length === 0) {
+          appendAIMessage(translations[currentLang].chat_welcome);
+        }
+      } else {
+        win.classList.add('hidden');
+        win.classList.remove('flex');
+        iconOpen.classList.remove('hidden');
+        iconClose.classList.add('hidden');
+      }
+      lucide.createIcons();
+    }
+
+    function appendAIMessage(text) {
+      const container = document.getElementById('chat-messages');
+      const div = document.createElement('div');
+      div.className = 'flex gap-2.5';
+      div.innerHTML = `
+        <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-cyan-400 flex items-center justify-center shrink-0 mt-0.5">
+          <i data-lucide="bot" class="w-3.5 h-3.5 text-white"></i>
+        </div>
+        <div class="chat-bubble-ai rounded-2xl rounded-tl-md px-3.5 py-2.5 text-sm text-slate-200 max-w-[85%] leading-relaxed">${text}</div>
+      `;
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+      lucide.createIcons();
+    }
+
+    function appendUserMessage(text) {
+      const container = document.getElementById('chat-messages');
+      const div = document.createElement('div');
+      div.className = 'flex justify-end';
+      div.innerHTML = `<div class="chat-bubble-user rounded-2xl rounded-tr-md px-3.5 py-2.5 text-sm text-white max-w-[85%] leading-relaxed">${text}</div>`;
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    // Smart keyword diagnostic engine
+    const diagnosticRules = [
+      {
+        keywords: ['webhook', 'timeout', 'n8n', 'make.com', 'make ', 'workflow timeout'],
+        response: {
+          en: "🔍 Detected: Webhook / n8n timeout issue.\n\nCommon causes: slow downstream API, missing retry policy, or webhook URL mismatch.\n\n✅ Recommended: <strong>Quick Fix & Debug ($49)</strong> — we can isolate the failing node and restore flow within 2–4 hours.\n\nWant me to open checkout for Quick Fix?",
+          vn: "🔍 Phát hiện: Lỗi Webhook / n8n timeout.\n\nNguyên nhân thường gặp: API downstream chậm, thiếu retry, hoặc URL webhook sai.\n\n✅ Đề xuất: <strong>Sửa lỗi nhanh ($49)</strong> — khoanh vùng node lỗi và khôi phục trong 2–4 giờ.\n\nBạn muốn mở thanh toán gói Quick Fix không?"
+        },
+        package: 'quick'
+      },
+      {
+        keywords: ['api key', 'invalid key', 'unauthorized', '401', '403', 'authentication', 'auth error'],
+        response: {
+          en: "🔍 Detected: API Key / Authentication error.\n\nUsually caused by expired keys, wrong environment (prod vs staging), or missing scopes.\n\n✅ Recommended: <strong>Quick Fix & Debug ($49)</strong> for rapid key rotation + permission fix.\n\nShall I open the Quick Fix checkout?",
+          vn: "🔍 Phát hiện: Lỗi API Key / Xác thực.\n\nThường do key hết hạn, sai môi trường, hoặc thiếu quyền (scope).\n\n✅ Đề xuất: <strong>Sửa lỗi nhanh ($49)</strong> để xoay key + sửa quyền nhanh.\n\nMở thanh toán Quick Fix luôn nhé?"
+        },
+        package: 'quick'
+      },
+      {
+        keywords: ['supabase', 'postgres', 'connection refused', 'connection error', 'db error', 'database'],
+        response: {
+          en: "🔍 Detected: Supabase / Database connection issue.\n\nPossible causes: RLS policies, connection pooling limits, wrong connection string, or IP allowlist.\n\n✅ Recommended: <strong>Standard Upgrade ($149)</strong> if you also need connection hardening + monitoring. Pure connection fix can use Quick Fix.\n\nWhich direction do you prefer?",
+          vn: "🔍 Phát hiện: Lỗi kết nối Supabase / Database.\n\nNguyên nhân có thể: RLS policy, giới hạn connection pool, chuỗi kết nối sai, hoặc IP allowlist.\n\n✅ Đề xuất: <strong>Gói Standard ($149)</strong> nếu cần củng cố kết nối + monitoring. Chỉ sửa connection thì Quick Fix là đủ.\n\nBạn muốn hướng nào?"
+        },
+        package: 'standard'
+      },
+      {
+        keywords: ['integration', 'connect', 'new flow', 'add node', 'upgrade', 'scale', 'performance'],
+        response: {
+          en: "🔍 Detected: Integration / Upgrade request.\n\nThis fits perfectly with our <strong>Standard Upgrade & Integration ($149)</strong> package — new nodes, error handling, retries, and optimization in 12–24h.\n\nReady to proceed to checkout?",
+          vn: "🔍 Phát hiện: Yêu cầu tích hợp / nâng cấp.\n\nRất phù hợp với gói <strong>Nâng cấp & Tích hợp chuẩn ($149)</strong> — thêm node, xử lý lỗi, retry và tối ưu trong 12–24h.\n\nSẵn sàng mở thanh toán chưa?"
+        },
+        package: 'standard'
+      },
+      {
+        keywords: ['architecture', 'multi-agent', 'enterprise', 'custom system', 'orchestrat', 'full system'],
+        response: {
+          en: "🔍 Detected: Complex / Enterprise-level request.\n\nThis requires dedicated architecture work. I recommend the <strong>Enterprise Custom Architecture ($499+)</strong> package with priority support and dedicated engineer.\n\nShall I open the Enterprise checkout?",
+          vn: "🔍 Phát hiện: Yêu cầu phức tạp / Enterprise.\n\nCần thiết kế kiến trúc chuyên sâu. Tôi đề xuất gói <strong>Enterprise Custom Architecture ($499+)</strong> với hỗ trợ ưu tiên và kỹ sư chuyên trách.\n\nMở thanh toán Enterprise nhé?"
+        },
+        package: 'enterprise'
+      }
+    ];
+
+    function getAIResponse(userText) {
+      const lower = userText.toLowerCase();
+      for (const rule of diagnosticRules) {
+        if (rule.keywords.some(kw => lower.includes(kw))) {
+          return { text: rule.response[currentLang], package: rule.package };
+        }
+      }
+      return { text: translations[currentLang].chat_fallback, package: 'standard' };
+    }
+
+    function sendChat() {
+      const input = document.getElementById('chat-input');
+      const text = input.value.trim();
+      if (!text) return;
+      appendUserMessage(text);
+      input.value = '';
+
+      // Simulate thinking
+      setTimeout(() => {
+        const result = getAIResponse(text);
+        appendAIMessage(result.text.replace(/\n/g, '<br>'));
+
+        // Add quick action buttons
+        const container = document.getElementById('chat-messages');
+        const actions = document.createElement('div');
+        actions.className = 'flex flex-wrap gap-2 ml-9';
+        actions.innerHTML = `
+          <button onclick="openCheckout('${result.package}')" class="text-xs font-medium px-3 py-1.5 rounded-lg bg-violet-500/20 text-violet-300 border border-violet-500/30 hover:bg-violet-500/30 transition-colors">
+            ${currentLang === 'vn' ? 'Mở thanh toán' : 'Open Checkout'}
+          </button>
+          <button onclick="document.getElementById('services').scrollIntoView({behavior:'smooth'}); toggleChat(false)" class="text-xs font-medium px-3 py-1.5 rounded-lg bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10 transition-colors">
+            ${currentLang === 'vn' ? 'Xem tất cả gói' : 'View all packages'}
+          </button>
+        `;
+        container.appendChild(actions);
+        container.scrollTop = container.scrollHeight;
+      }, 600 + Math.random() * 400);
+    }
+
+    // ===================== INIT =====================
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      setLanguage('en');
+    });
+  </script>
+</body>
+</html>
