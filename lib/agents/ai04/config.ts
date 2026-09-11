@@ -1,1 +1,1 @@
-export const AI04_CONFIG = { id:"AI-04", name:"Digital Commerce Agent", version:"1.0.0", independence:"isolated", storeUrl:"https://agentflow-khaki-rho.vercel.app", sourceLibrary:"Google Drive source library", capabilities:["catalog","sales","support","delivery","analytics"] } as const;
+export const AI04_CONFIG={id:"AI-04",name:"Digital Commerce Agent",version:"1.0.0",independence:"isolated",storeUrl:"https://agentflow-khaki-rho.vercel.app",capabilities:["catalog","sales","support","delivery","analytics"]} as const;
