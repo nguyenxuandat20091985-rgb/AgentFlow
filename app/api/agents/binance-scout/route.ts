@@ -13,53 +13,38 @@ function authorized(request: NextRequest) {
 
 export async function GET() {
   const health = await getBinancePublicHealth();
-  return NextResponse.json({
-    ok: true,
-    agentId: BINANCE_AGENT_ID,
-    name: "AI #3 — Binance Zero-Capital Scout",
-    mode: "research_only",
-    capitalRequired: 0,
-    binance: health,
-    rules: ZERO_CAPITAL_RULES,
-  }, { headers: { "cache-control": "no-store" } });
+  return NextResponse.json({ ok: true, agentId: BINANCE_AGENT_ID, name: "AI #3 — Binance Zero-Capital Scout", mode: "research_only", capitalRequired: 0, binance: health, rules: ZERO_CAPITAL_RULES }, { headers: { "cache-control": "no-store" } });
 }
 
 export async function POST(request: NextRequest) {
-  if (!authorized(request)) {
-    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
-  }
-
+  if (!authorized(request)) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   try {
     const health = await getBinancePublicHealth();
-    const queue = buildScoutQueue();
-    const inserted = await supabaseAdmin<unknown[]>("agent_action_queue", {
-      method: "POST",
-      headers: { Prefer: "return=representation,resolution=ignore-duplicates" },
-      body: JSON.stringify(queue),
-    });
-
+    const candidates = buildScoutQueue();
+    const queue: typeof candidates = [];
+    // Avoid relying on PostgREST conflict-preference behavior: check each stable dedupe key first.
+    for (const item of candidates) {
+      const existing = await supabaseAdmin<Array<{ id: string }>>(
+        `agent_action_queue?select=id&dedupe_key=eq.${encodeURIComponent(item.dedupe_key)}&limit=1`,
+      );
+      if (!Array.isArray(existing) || existing.length === 0) queue.push(item);
+    }
+    const inserted = queue.length
+      ? await supabaseAdmin<unknown[]>("agent_action_queue", {
+          method: "POST",
+          headers: { Prefer: "return=representation" },
+          body: JSON.stringify(queue),
+        })
+      : [];
     const output = {
-      agentId: BINANCE_AGENT_ID,
-      mode: "research_only",
-      capitalRequired: 0,
-      binance: health,
-      queued: Array.isArray(inserted) ? inserted.length : 0,
-      candidates: queue.length,
+      agentId: BINANCE_AGENT_ID, mode: "research_only", capitalRequired: 0, binance: health,
+      queued: Array.isArray(inserted) ? inserted.length : 0, candidates: candidates.length,
       note: "Candidates are not earnings. No trade, withdrawal, transfer, or revenue is executed by this agent.",
     };
-
-    await supabaseAdmin("agent_task_runs", {
-      method: "POST",
-      headers: { Prefer: "return=minimal" },
-      body: JSON.stringify({
-        agent_id: BINANCE_AGENT_ID,
-        task_type: "binance_zero_capital_scout",
-        status: "completed",
-        input_snapshot: { checkedAt: new Date().toISOString(), mode: "research_only" },
-        output,
-      }),
-    });
-
+    await supabaseAdmin("agent_task_runs", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify({
+      agent_id: BINANCE_AGENT_ID, task_type: "binance_zero_capital_scout", status: "completed",
+      input_snapshot: { checkedAt: new Date().toISOString(), mode: "research_only" }, output,
+    })});
     return NextResponse.json({ ok: true, ...output }, { headers: { "cache-control": "no-store" } });
   } catch (error) {
     console.error("[binance-scout] failed", error);
