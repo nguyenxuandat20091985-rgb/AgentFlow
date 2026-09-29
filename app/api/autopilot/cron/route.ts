@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { planAutopilot } from "@/lib/business-autopilot";
 import { runEarningAutopilot } from "@/lib/earning-autopilot";
+import { dispatchEarningMissions } from "@/lib/ceo/earning/dispatch-missions";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -13,21 +14,29 @@ export async function GET(request: Request) {
 
   const objective =
     process.env.AUTOPILOT_OBJECTIVE ||
-    "Run compliant affiliate commerce: select live products, publish useful product content with tracked links, and reconcile only verified revenue.";
+    "Run compliant diversified monetization: affiliate storefront, social traffic, SEO/lead/email drafts; reconcile only verified revenue.";
 
   try {
     const earning = await runEarningAutopilot(10);
+    const missions = await dispatchEarningMissions({ includeDraftOpportunities: true });
     return NextResponse.json(
       {
         ok: true,
         executedAt: new Date().toISOString(),
-        mode: "earning-autopilot",
+        mode: "earning-autopilot+missions",
         plan: planAutopilot(objective),
         earning,
+        missions: {
+          count: missions.results.length,
+          enqueued: missions.results.filter((r) => r.action === "enqueued").length,
+          opportunities: missions.results.filter((r) => r.action === "opportunity").length,
+          results: missions.results,
+        },
         safety: {
           revenue: "Only verified provider records can become revenue.",
           payments: "No bank transfer, withdrawal, or fund movement is automated.",
-          promotion: "Owned-site product content only; no fake clicks, orders, reviews, or commissions.",
+          promotion: "Owned-site product content + compliant drafts; no fake clicks, orders, reviews, or commissions.",
+          agents: "Only salesbot/marketing runtime loops execute; other missions are drafts/opportunities until enabled.",
         },
       },
       { headers: { "cache-control": "no-store" } },
