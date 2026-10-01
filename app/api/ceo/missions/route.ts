@@ -23,7 +23,6 @@ export async function POST(request: Request) {
     includeDraftOpportunities: body.includeDraftOpportunities !== false,
   });
   return NextResponse.json({
-    ok: true,
     ...result,
     note: "Enqueued runtime work for salesbot/marketing; other agents logged as opportunities only until runtimeEnabled.",
   });
