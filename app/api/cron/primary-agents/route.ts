@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { runtimeEnabledAgents } from "@/lib/ceo/fleet";
 import { dispatchEarningMissions } from "@/lib/ceo/earning/dispatch-missions";
+import { spawnCatalogBatch } from "@/lib/ceo/factory/spawn";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -27,6 +28,14 @@ export async function GET(request: Request) {
   const timestamp = new Date().toISOString();
 
   try {
+    // Factory: ensure next-wave agents proposed/enabled in process + jobs
+    let spawn: unknown = null;
+    try {
+      spawn = await spawnCatalogBatch(8);
+    } catch (e) {
+      spawn = { error: e instanceof Error ? e.message : String(e) };
+    }
+
     const supabase = getSupabaseAdmin();
     const fleet = runtimeEnabledAgents();
     const heartbeatResults: Array<{ agentId: string; ok: boolean; error?: string }> = [];
@@ -55,14 +64,15 @@ export async function GET(request: Request) {
       {
         ok: true,
         executedAt: timestamp,
-        mode: "fleet-heartbeat-dispatch",
+        mode: "spawn+fleet-heartbeat-dispatch",
+        spawn,
         heartbeats: heartbeatResults,
         dispatch: {
           count: dispatch.results.length,
           enqueued: dispatch.results.filter((r) => r.action === "enqueued").length,
           results: dispatch.results,
         },
-        note: "All earning agents heartbeated and received distinct daily jobs. Heavy LLM runtime is separate; revenue only from verified ledger.",
+        note: "Factory spawn catalog + all earning agents heartbeated/jobs enqueued. Revenue only from verified ledger.",
       },
       { headers: { "cache-control": "no-store" } },
     );
