@@ -1,5 +1,5 @@
 /**
- * Agent manifest schema — factory foundation. Pure validation; no activation.
+ * Agent manifest schema — factory foundation.
  */
 export const AGENT_LIFECYCLE_STATES = [
   "proposed", "sandbox", "validated", "review_required", "approved", "enabled", "paused", "retired",
@@ -108,7 +108,7 @@ export function validateAgentManifest(input: unknown, options?: { allowRuntimeEn
   if (!budgetResult.ok) errors.push(...budgetResult.errors);
 
   if (runtimeEnabled === true && !options?.allowRuntimeEnabled) {
-    errors.push("runtimeEnabled must be false for factory-proposed manifests; enable only via fleet registry after owner review");
+    errors.push("runtimeEnabled must be false for factory-proposed manifests; enable only via fleet registry or spawn pipeline");
   }
   if (lifecycle === "enabled" && runtimeEnabled !== true) errors.push("lifecycle=enabled requires runtimeEnabled=true");
   if (lifecycle === "proposed" && runtimeEnabled === true) errors.push("lifecycle=proposed cannot have runtimeEnabled=true");
@@ -142,7 +142,7 @@ export function assertManifestNotColliding(manifest: AgentManifest): ValidationR
 const TRANSITIONS: Record<AgentLifecycleState, AgentLifecycleState[]> = {
   proposed: ["sandbox", "retired"],
   sandbox: ["validated", "proposed", "retired"],
-  validated: ["review_required", "sandbox", "retired"],
+  validated: ["review_required", "approved", "sandbox", "retired"],
   review_required: ["approved", "sandbox", "retired"],
   approved: ["enabled", "paused", "retired"],
   enabled: ["paused", "retired"],
@@ -150,10 +150,16 @@ const TRANSITIONS: Record<AgentLifecycleState, AgentLifecycleState[]> = {
   retired: [],
 };
 
-export function canTransition(from: AgentLifecycleState, to: AgentLifecycleState): { allowed: boolean; reason: string } {
+export function canTransition(
+  from: AgentLifecycleState,
+  to: AgentLifecycleState,
+  options?: { allowEnable?: boolean },
+): { allowed: boolean; reason: string } {
   if (from === to) return { allowed: true, reason: "no-op" };
   const allowed = TRANSITIONS[from] ?? [];
   if (!allowed.includes(to)) return { allowed: false, reason: `transition ${from} → ${to} is not permitted` };
-  if (to === "enabled") return { allowed: false, reason: "enabled requires owner fleet registry flip, not factory" };
+  if (to === "enabled" && !options?.allowEnable) {
+    return { allowed: false, reason: "enabled requires allowEnable (spawn pipeline / owner)" };
+  }
   return { allowed: true, reason: "ok" };
 }
