@@ -9,7 +9,7 @@ jobs:
   keepalive:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping primary agents cron
+      - name: Ping primary agents + website + autopilot
         env:
           BASE_URL: ${{ secrets.AGENTFLOW_BASE_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
@@ -17,18 +17,23 @@ jobs:
         run: |
           set -euo pipefail
           BASE="${BASE_URL:-https://agentflow-khaki-rho.vercel.app}"
-          URL="${BASE}/api/cron/primary-agents"
-          AUTH=""
+          AUTH_ARGS=(-H "x-vercel-cron: 1" -H "cache-control: no-store")
           if [ -n "${CRON_SECRET:-}" ]; then
-            AUTH="Authorization: Bearer ${CRON_SECRET}"
+            AUTH_ARGS+=(-H "Authorization: Bearer ${CRON_SECRET}")
           elif [ -n "${AGENT_HEARTBEAT_SECRET:-}" ]; then
-            AUTH="Authorization: Bearer ${AGENT_HEARTBEAT_SECRET}"
+            AUTH_ARGS+=(-H "Authorization: Bearer ${AGENT_HEARTBEAT_SECRET}")
           fi
-          if [ -n "$AUTH" ]; then
-            curl -sS -X GET "$URL" -H "$AUTH" -H "cache-control: no-store" | tee /tmp/keepalive.json
-          else
-            echo "No CRON_SECRET or AGENT_HEARTBEAT_SECRET in repo secrets — attempting unauthenticated (dev only)"
-            curl -sS -X GET "$URL" -H "cache-control: no-store" | tee /tmp/keepalive.json || true
-          fi
-          # Fail job only on hard HTTP errors from curl itself; body may be 401 if secrets missing
-          echo "keepalive completed"
+
+          echo "== primary-agents =="
+          curl -sS -m 90 "${BASE}/api/cron/primary-agents" "${AUTH_ARGS[@]}" | tee /tmp/primary.json | head -c 500
+          echo
+
+          echo "== website =="
+          curl -sS -m 45 "${BASE}/api/cron/website" "${AUTH_ARGS[@]}" | tee /tmp/website.json | head -c 400
+          echo
+
+          echo "== autopilot =="
+          curl -sS -m 60 "${BASE}/api/autopilot/cron" "${AUTH_ARGS[@]}" | tee /tmp/auto.json | head -c 400
+          echo
+
+          echo "keepalive completed at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
