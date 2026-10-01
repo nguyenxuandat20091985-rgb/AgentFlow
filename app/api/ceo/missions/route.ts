@@ -35,7 +35,6 @@ export async function POST(request: Request) {
     runs = await runAllMissionAgents({ limit: body.limit ?? 8 });
   }
   return NextResponse.json({
-    ok: true,
     ...result,
     runs,
     note: "Enqueued distinct work for all auto-earning agents. Optional runAgents executes LLM planning for dispatch_ready batch.",
