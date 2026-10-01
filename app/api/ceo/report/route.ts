@@ -1,19 +1,14 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin, supabaseAdminConfigured } from "@/lib/supabase-admin";
 import { facebookPublishingConfigured } from "@/lib/facebook";
+import { FLEET_AGENTS, HEARTBEAT_MAX_AGE_MS } from "@/lib/ceo/fleet";
 
-const AGENTS = [
-  "SalesBot", "SupportAI", "DataAnalyzer", "ContentWriter", "ChatBot",
-  "LeadGen", "EmailAI", "SocialMedia", "Analytics", "CRM", "Billing",
-  "Inventory", "Research", "Design", "Code", "QA", "HR", "Finance",
-  "Marketing", "CustomerService",
-];
 const PRIMARY = ["salesbot", "marketing"] as const;
 const TARGET = 15_000_000;
-const HEARTBEAT_MAX_AGE_MS = 10 * 60 * 1000;
 const facebookAutoPublishEnabled = () => process.env.FACEBOOK_AUTOPUBLISH_ENABLED !== "false";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 export async function GET() {
   try {
@@ -21,7 +16,8 @@ export async function GET() {
       return NextResponse.json({ error: "Supabase is not configured" }, { status: 503 });
     }
 
-    const ids = AGENTS.map((name) => name.toLowerCase());
+    const agents = FLEET_AGENTS.filter((a) => a.id !== "ceo");
+    const ids = agents.map((a) => a.id);
     const [ledgerResult, paymentsResult, heartbeatsResult, runsResult, queueResult, publishedResult, ceoReviewRun] =
       await Promise.all([
         supabaseAdmin<Array<Record<string, unknown>>>("revenue_ledger?select=amount,agent_id,created_at&order=created_at.desc&limit=500"),
@@ -48,22 +44,32 @@ export async function GET() {
       if (id && !runMap.has(id)) runMap.set(id, row);
     }
 
-    const fleet = AGENTS.map((name) => {
-      const agentId = name.toLowerCase();
+    const fleet = agents.map((agent) => {
+      const agentId = agent.id;
       const heartbeat = heartbeatMap.get(agentId);
       const lastSeen = heartbeat?.last_seen_at ? Date.parse(String(heartbeat.last_seen_at)) : 0;
-      const running = heartbeat?.status === "running" && Number.isFinite(lastSeen) && Date.now() - lastSeen <= HEARTBEAT_MAX_AGE_MS;
-      const actual = ledger.filter((row) => String(row.agent_id ?? "").toLowerCase() === agentId).reduce((sum, row) => sum + Number(row.amount || 0), 0);
+      const running =
+        agent.runtimeEnabled &&
+        heartbeat?.status === "running" &&
+        Number.isFinite(lastSeen) &&
+        Date.now() - lastSeen <= HEARTBEAT_MAX_AGE_MS;
+      const actual = ledger
+        .filter((row) => String(row.agent_id ?? "").toLowerCase() === agentId)
+        .reduce((sum, row) => sum + Number(row.amount || 0), 0);
       const agentRuns = runs.filter((row) => String(row.agent_id ?? "").toLowerCase() === agentId);
-      const pendingActions = queue.filter((row) => String(row.agent_id ?? "").toLowerCase() === agentId && String(row.status ?? "") === "pending").length;
+      const pendingActions = queue.filter(
+        (row) => String(row.agent_id ?? "").toLowerCase() === agentId && String(row.status ?? "") === "pending",
+      ).length;
       return {
         agentId,
-        name,
-        role: name === "SalesBot" ? "Website affiliate commerce" : name === "Marketing" ? "Facebook growth & affiliate marketing" : "AI Agent",
-        status: running ? "running" : "stopped",
+        name: agent.name,
+        role: agent.role,
+        channel: agent.channel,
+        runtimeEnabled: agent.runtimeEnabled,
+        status: running ? "running" : agent.runtimeEnabled ? "stopped" : "disabled",
         statusSource: heartbeat ? "heartbeat" : "no-heartbeat",
         lastSeen: heartbeat?.last_seen_at ?? null,
-        target: PRIMARY.includes(agentId as (typeof PRIMARY)[number]) ? TARGET : null,
+        target: PRIMARY.includes(agentId as (typeof PRIMARY)[number]) ? TARGET : agent.kpiTarget,
         actual: PRIMARY.includes(agentId as (typeof PRIMARY)[number]) ? actual : 0,
         progress: PRIMARY.includes(agentId as (typeof PRIMARY)[number]) ? Math.min(100, (actual / TARGET) * 100) : 0,
         remaining: PRIMARY.includes(agentId as (typeof PRIMARY)[number]) ? Math.max(0, TARGET - actual) : null,
@@ -92,15 +98,16 @@ export async function GET() {
       {
         ok: true,
         generatedAt: new Date().toISOString(),
-        summary: `AI CEO realtime: ${running.length}/${AGENTS.length} AI online; ${published.length} bài Tier A đã publish trên kênh sở hữu; ${successfulPayments.length} thanh toán thành công; doanh thu xác thực ${totalRevenue.toLocaleString("vi-VN")} ₫.`,
+        summary: `AI CEO realtime: ${running.length}/${agents.length} AI online; ${published.length} bài Tier A; ${successfulPayments.length} thanh toán thành công; doanh thu xác thực ${totalRevenue.toLocaleString("vi-VN")} ₫.`,
         metrics: {
-          totalAgents: AGENTS.length,
+          totalAgents: agents.length,
           running: running.length,
-          stopped: AGENTS.length - running.length,
+          stopped: agents.length - running.length,
           successfulPayments: successfulPayments.length,
           totalRevenue,
           pendingActions: queue.filter((row) => String(row.status ?? "") === "pending").length,
           publishedTierA: published.length,
+          heartbeatMaxAgeHours: HEARTBEAT_MAX_AGE_MS / (60 * 60 * 1000),
         },
         channels: {
           website: {
