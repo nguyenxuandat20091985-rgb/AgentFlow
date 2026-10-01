@@ -10,9 +10,11 @@ import {
 import { isOwnerAuthorized, unauthorizedResponse, ownerAuthConfigured } from "@/lib/ceo/security/owner-auth";
 import { persistManifest, persistOpportunity, persistBusinessCase, getPersistenceMode } from "@/lib/ceo/persistence/store";
 import { generateAgentStubSource, proposedPathsForAgent } from "@/lib/ceo/templates/agent-stub";
+import { spawnAgent, spawnCatalogBatch, SPAWN_CATALOG } from "@/lib/ceo/factory/spawn";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 export async function GET() {
   try {
@@ -21,6 +23,7 @@ export async function GET() {
       {
         ok: true,
         ...snapshot,
+        spawnCatalog: SPAWN_CATALOG.map((s) => ({ id: s.id, name: s.name, title: s.title })),
         persistence: getPersistenceMode(),
         authConfigured: ownerAuthConfigured(),
         isolation: "Factory failure must not stop salesbot/marketing heartbeats",
@@ -58,7 +61,7 @@ export async function POST(request: Request) {
       const persisted = await persistManifest(result.manifest);
       return NextResponse.json({
         ok: true, action, mode: FACTORY_MODE, manifest: result.manifest, persistence: persisted,
-        note: "Proposed only. runtimeEnabled=false. Owner must review and flip fleet registry to enable.",
+        note: "Proposed. Use spawn_agent to enable + assign earning mission.",
       });
     }
 
@@ -70,7 +73,49 @@ export async function POST(request: Request) {
       if (result.manifest) await persistManifest(result.manifest);
       return NextResponse.json({
         ok: true, action, report: result.report, manifest: result.manifest,
-        note: "Sandbox is static validation only; does not enable production runtime",
+        note: "Sandbox is static validation only",
+      });
+    }
+
+    if (action === "spawn_agent") {
+      const payload = (body.payload ?? {}) as {
+        id?: string; name?: string; domain?: string; channel?: string;
+        title?: string; howEarns?: string; model?: string; dailyActions?: string[]; kpi?: string;
+      };
+      const id = String(payload.id ?? "").trim().toLowerCase();
+      if (!id) return NextResponse.json({ ok: false, errors: ["payload.id required"] }, { status: 400 });
+      const fromCatalog = SPAWN_CATALOG.find((s) => s.id === id);
+      const result = await spawnAgent({
+        id,
+        name: String(payload.name ?? fromCatalog?.name ?? id),
+        domain: String(payload.domain ?? fromCatalog?.domain ?? "other"),
+        channel: String(payload.channel ?? fromCatalog?.channel ?? "other"),
+        title: String(payload.title ?? fromCatalog?.title ?? id),
+        howEarns: String(payload.howEarns ?? fromCatalog?.howEarns ?? "Draft earning workflow"),
+        model: (payload.model as typeof fromCatalog extends undefined ? "seo_content" : NonNullable<typeof fromCatalog>["model"])
+          || fromCatalog?.model
+          || "seo_content",
+        dailyActions: Array.isArray(payload.dailyActions) && payload.dailyActions.length
+          ? payload.dailyActions
+          : fromCatalog?.dailyActions ?? ["daily_draft"],
+        kpi: String(payload.kpi ?? fromCatalog?.kpi ?? "drafts_produced"),
+      });
+      return NextResponse.json({
+        ok: result.ok,
+        action,
+        ...result,
+        note: "Spawn enables agent + mission + job. Never books revenue.",
+      }, { status: result.ok ? 200 : 400 });
+    }
+
+    if (action === "spawn_catalog") {
+      const limit = Number((body.payload as { limit?: number } | undefined)?.limit ?? 8);
+      const batch = await spawnCatalogBatch(Math.min(20, Math.max(1, limit)));
+      return NextResponse.json({
+        ok: true,
+        action,
+        ...batch,
+        note: "Spawned next-wave catalog agents with distinct earning jobs.",
       });
     }
 
@@ -84,7 +129,7 @@ export async function POST(request: Request) {
       });
       return NextResponse.json({
         ok: true, action, paths: proposedPathsForAgent(id), source,
-        note: "Source text only — not written to disk, not executed, not deployed",
+        note: "Source text only — not written to disk by default",
       });
     }
 
@@ -104,7 +149,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       ok: false,
-      error: "Unknown action. Use propose_manifest | sandbox_check | build_stub | record_opportunity | record_business_case",
+      error: "Unknown action. Use propose_manifest | sandbox_check | spawn_agent | spawn_catalog | build_stub | record_opportunity | record_business_case",
       mode: FACTORY_MODE,
     }, { status: 400 });
   } catch (error) {
