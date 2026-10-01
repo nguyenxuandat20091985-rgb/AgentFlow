@@ -3,19 +3,20 @@ import { revalidateTag } from "next/cache";
 import { getWebsiteCatalog } from "@/lib/website-catalog";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 export async function GET(request: Request) {
   const auth = request.headers.get("authorization");
+  const isVercelCron = request.headers.get("x-vercel-cron") === "1";
   const cronSecret = process.env.CRON_SECRET;
   const workerSecret = process.env.AGENT_HEARTBEAT_SECRET;
   const allowed = [cronSecret, workerSecret].filter(Boolean).map((value) => `Bearer ${value}`);
 
-  if (allowed.length > 0 && !allowed.includes(auth || "")) {
+  if (!isVercelCron && allowed.length > 0 && !allowed.includes(auth || "")) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    // Keep this compatible with the installed Next.js cache API.
     revalidateTag("website-catalog");
     const catalog = await getWebsiteCatalog();
 
