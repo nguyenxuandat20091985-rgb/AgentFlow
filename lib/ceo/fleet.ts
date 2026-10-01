@@ -80,7 +80,6 @@ export const FLEET_AGENTS: FleetAgent[] = [
   { id: "hr", name: "HR", domain: "other", channel: "hr", runtimeEnabled: false, dispatchEnabled: false, kpiTarget: null, role: "Internal HR — blocked", branchHint: "agent/hr-*" },
   { id: "finance", name: "Finance", domain: "payment", channel: "finance", runtimeEnabled: true, dispatchEnabled: true, kpiTarget: null, role: "Net revenue truth", branchHint: "agent/finance-*" },
   { id: "customerservice", name: "CustomerService", domain: "support", channel: "support", runtimeEnabled: true, dispatchEnabled: true, kpiTarget: 1_000_000, role: "CS ticket drafts", branchHint: "agent/customerservice-*" },
-  // Next-wave Factory spawn catalog (durable fleet entries)
   { id: "shopeeops", name: "Shopee Ops", domain: "other", channel: "shopee", runtimeEnabled: true, dispatchEnabled: true, kpiTarget: 5_000_000, role: "Shopee affiliate merchandising", branchHint: "agent/shopeeops-*" },
   { id: "tiktokgrowth", name: "TikTok Growth", domain: "content", channel: "tiktok", runtimeEnabled: true, dispatchEnabled: true, kpiTarget: 3_000_000, role: "TikTok scripts → storefront", branchHint: "agent/tiktokgrowth-*" },
   { id: "youtubecontent", name: "YouTube Content", domain: "content", channel: "youtube", runtimeEnabled: true, dispatchEnabled: true, kpiTarget: 3_000_000, role: "Long-form review scripts", branchHint: "agent/youtubecontent-*" },
@@ -91,7 +90,8 @@ export const FLEET_AGENTS: FleetAgent[] = [
   { id: "pricemonitor", name: "Price Monitor", domain: "analytics", channel: "pricing", runtimeEnabled: true, dispatchEnabled: true, kpiTarget: 1_000_000, role: "Price & margin watch", branchHint: "agent/pricemonitor-*" },
 ];
 
-export const HEARTBEAT_MAX_AGE_MS = 10 * 60 * 1000;
+/** Hobby plan: daily cron only — keep "online" until next daily heartbeat (+ buffer). */
+export const HEARTBEAT_MAX_AGE_MS = 26 * 60 * 60 * 1000;
 
 export function getFleetAgent(id: string): FleetAgent | undefined {
   return FLEET_AGENTS.find((a) => a.id === id.toLowerCase());
