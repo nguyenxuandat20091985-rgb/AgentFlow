@@ -10,7 +10,7 @@ import {
 import { isOwnerAuthorized, unauthorizedResponse, ownerAuthConfigured } from "@/lib/ceo/security/owner-auth";
 import { persistManifest, persistOpportunity, persistBusinessCase, getPersistenceMode } from "@/lib/ceo/persistence/store";
 import { generateAgentStubSource, proposedPathsForAgent } from "@/lib/ceo/templates/agent-stub";
-import { spawnAgent, spawnCatalogBatch, SPAWN_CATALOG } from "@/lib/ceo/factory/spawn";
+import { spawnAgent, spawnCatalogBatch, SPAWN_CATALOG, type SpawnSpec } from "@/lib/ceo/factory/spawn";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -85,6 +85,7 @@ export async function POST(request: Request) {
       const id = String(payload.id ?? "").trim().toLowerCase();
       if (!id) return NextResponse.json({ ok: false, errors: ["payload.id required"] }, { status: 400 });
       const fromCatalog = SPAWN_CATALOG.find((s) => s.id === id);
+      const model = (payload.model || fromCatalog?.model || "seo_content") as SpawnSpec["model"];
       const result = await spawnAgent({
         id,
         name: String(payload.name ?? fromCatalog?.name ?? id),
@@ -92,18 +93,15 @@ export async function POST(request: Request) {
         channel: String(payload.channel ?? fromCatalog?.channel ?? "other"),
         title: String(payload.title ?? fromCatalog?.title ?? id),
         howEarns: String(payload.howEarns ?? fromCatalog?.howEarns ?? "Draft earning workflow"),
-        model: (payload.model as typeof fromCatalog extends undefined ? "seo_content" : NonNullable<typeof fromCatalog>["model"])
-          || fromCatalog?.model
-          || "seo_content",
+        model,
         dailyActions: Array.isArray(payload.dailyActions) && payload.dailyActions.length
           ? payload.dailyActions
           : fromCatalog?.dailyActions ?? ["daily_draft"],
         kpi: String(payload.kpi ?? fromCatalog?.kpi ?? "drafts_produced"),
       });
       return NextResponse.json({
-        ok: result.ok,
-        action,
         ...result,
+        action,
         note: "Spawn enables agent + mission + job. Never books revenue.",
       }, { status: result.ok ? 200 : 400 });
     }
@@ -112,9 +110,8 @@ export async function POST(request: Request) {
       const limit = Number((body.payload as { limit?: number } | undefined)?.limit ?? 8);
       const batch = await spawnCatalogBatch(Math.min(20, Math.max(1, limit)));
       return NextResponse.json({
-        ok: true,
-        action,
         ...batch,
+        action,
         note: "Spawned next-wave catalog agents with distinct earning jobs.",
       });
     }
