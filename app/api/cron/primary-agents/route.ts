@@ -9,14 +9,15 @@ export const maxDuration = 60;
 const PRIMARY: RuntimeAgentId[] = ["salesbot", "marketing"];
 
 function authorized(request: Request): boolean {
+  // Official Vercel Cron invocations always send this header.
+  if (request.headers.get("x-vercel-cron") === "1") return true;
+
   const cronSecret = process.env.CRON_SECRET?.trim();
   const heartbeatSecret = process.env.AGENT_HEARTBEAT_SECRET?.trim();
   const auth = request.headers.get("authorization")?.trim() || "";
   const bearer = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : "";
-  // Vercel Cron sends Authorization: Bearer <CRON_SECRET>
   if (cronSecret && bearer === cronSecret) return true;
   if (heartbeatSecret && bearer === heartbeatSecret) return true;
-  // Allow unauthenticated only when no secrets configured (local/dev)
   if (!cronSecret && !heartbeatSecret) return true;
   return false;
 }
