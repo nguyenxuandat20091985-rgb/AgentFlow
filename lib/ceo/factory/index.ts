@@ -1,5 +1,6 @@
 /**
- * AI Factory — propose, validate, sandbox-check. Never enables runtime.
+ * AI Factory — propose, sandbox, spawn (execute_limited).
+ * Never books revenue or moves money.
  */
 import {
   assertManifestNotColliding, canTransition, defaultBudgetPolicy, validateAgentManifest,
@@ -11,7 +12,7 @@ import { validateAuditEvent, type AuditEvent } from "@/lib/ceo/schemas/audit-eve
 import { runSandboxChecks, type SandboxReport } from "@/lib/ceo/factory/sandbox";
 
 export type FactoryMode = "observe" | "recommend" | "execute_limited";
-export const FACTORY_MODE: FactoryMode = "observe";
+export const FACTORY_MODE: FactoryMode = "execute_limited";
 export const FACTORY_MANIFEST_QUOTA = 50;
 
 export type ProposedManifestInput = {
@@ -73,10 +74,19 @@ export function setGlobalPaused(paused: boolean, actor: string = "owner"): Audit
   });
 }
 
+export function getManifest(agentId: string): AgentManifest | undefined {
+  return memoryStore.manifests.find((m) => m.id === agentId);
+}
+
 export function factoryPropose(input: ProposedManifestInput) {
   if (memoryStore.globalPaused) {
     recordAudit({ actor: "factory", actorId: "factory", action: "manifest_rejected", targetType: "agent_manifest", targetId: input.id ?? null, result: "denied", detail: { reason: "global kill switch active" } });
     return { ok: false as const, errors: ["Global kill switch is active; proposals denied"] };
+  }
+  const id = String(input.id ?? "").trim().toLowerCase();
+  const existing = memoryStore.manifests.find((m) => m.id === id);
+  if (existing) {
+    return { ok: true as const, manifest: existing };
   }
   if (memoryStore.manifests.length >= FACTORY_MANIFEST_QUOTA) {
     return { ok: false as const, errors: [`Factory quota exceeded (${FACTORY_MANIFEST_QUOTA})`] };
@@ -122,8 +132,11 @@ export function factoryRecordBusinessCase(input: unknown) {
 
 export function getFactorySnapshot() {
   return {
-    mode: FACTORY_MODE, phase: 2 as const, globalPaused: memoryStore.globalPaused, quota: FACTORY_MANIFEST_QUOTA,
-    note: "Propose + sandbox-check only. No enable, merge, deploy, or payment side effects.",
+    mode: FACTORY_MODE,
+    phase: 3 as const,
+    globalPaused: memoryStore.globalPaused,
+    quota: FACTORY_MANIFEST_QUOTA,
+    note: "execute_limited: propose → sandbox → spawn enable + mission. Never books revenue or deploys arbitrary code.",
     manifests: memoryStore.manifests.slice(0, 50),
     opportunities: memoryStore.opportunities.slice(0, 50),
     businessCases: memoryStore.businessCases.slice(0, 50),
