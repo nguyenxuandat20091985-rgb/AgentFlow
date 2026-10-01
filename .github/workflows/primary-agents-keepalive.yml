@@ -1,0 +1,34 @@
+name: Primary agents keepalive
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping primary agents cron
+        env:
+          BASE_URL: ${{ secrets.AGENTFLOW_BASE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          AGENT_HEARTBEAT_SECRET: ${{ secrets.AGENT_HEARTBEAT_SECRET }}
+        run: |
+          set -euo pipefail
+          BASE="${BASE_URL:-https://agentflow-khaki-rho.vercel.app}"
+          URL="${BASE}/api/cron/primary-agents"
+          AUTH=""
+          if [ -n "${CRON_SECRET:-}" ]; then
+            AUTH="Authorization: Bearer ${CRON_SECRET}"
+          elif [ -n "${AGENT_HEARTBEAT_SECRET:-}" ]; then
+            AUTH="Authorization: Bearer ${AGENT_HEARTBEAT_SECRET}"
+          fi
+          if [ -n "$AUTH" ]; then
+            curl -sS -X GET "$URL" -H "$AUTH" -H "cache-control: no-store" | tee /tmp/keepalive.json
+          else
+            echo "No CRON_SECRET or AGENT_HEARTBEAT_SECRET in repo secrets — attempting unauthenticated (dev only)"
+            curl -sS -X GET "$URL" -H "cache-control: no-store" | tee /tmp/keepalive.json || true
+          fi
+          # Fail job only on hard HTTP errors from curl itself; body may be 401 if secrets missing
+          echo "keepalive completed"
