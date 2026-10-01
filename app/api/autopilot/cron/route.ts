@@ -29,14 +29,14 @@ export async function GET(request: Request) {
         missions: {
           count: missions.results.length,
           enqueued: missions.results.filter((r) => r.action === "enqueued").length,
-          opportunities: missions.results.filter((r) => r.action === "opportunity").length,
+          skipped: missions.results.filter((r) => r.action === "skipped").length,
           results: missions.results,
         },
         safety: {
           revenue: "Only verified provider records can become revenue.",
           payments: "No bank transfer, withdrawal, or fund movement is automated.",
           promotion: "Owned-site product content + compliant drafts; no fake clicks, orders, reviews, or commissions.",
-          agents: "Only salesbot/marketing runtime loops execute; other missions are drafts/opportunities until enabled.",
+          agents: "Auto-earning agents enqueue distinct jobs; verified ledger only counts real money.",
         },
       },
       { headers: { "cache-control": "no-store" } },
