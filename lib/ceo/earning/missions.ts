@@ -1,7 +1,6 @@
 /**
  * One distinct monetization mission per agent.
- * Diversified legal digital income paths — not only Shopee product links.
- * dispatch_ready / active_runtime agents get queue work + cron planning cycles.
+ * Static catalog + dynamic missions registered by Factory spawn.
  */
 
 export type MissionStatus = "active_runtime" | "dispatch_ready" | "draft_only" | "blocked";
@@ -242,14 +241,35 @@ export const EARNING_MISSIONS: EarningMission[] = [
   },
 ];
 
+/** In-process dynamic missions from Factory spawn (also mirrored to queue/jobs). */
+const dynamicMissions: EarningMission[] = [];
+
+export function registerDynamicMission(mission: EarningMission): void {
+  const idx = dynamicMissions.findIndex((m) => m.agentId === mission.agentId);
+  if (idx >= 0) dynamicMissions[idx] = mission;
+  else dynamicMissions.unshift(mission);
+  if (dynamicMissions.length > 100) dynamicMissions.length = 100;
+}
+
+export function allMissions(): EarningMission[] {
+  const map = new Map<string, EarningMission>();
+  for (const m of EARNING_MISSIONS) map.set(m.agentId, m);
+  for (const m of dynamicMissions) map.set(m.agentId, m);
+  return [...map.values()];
+}
+
 export function missionsByStatus(status: MissionStatus): EarningMission[] {
-  return EARNING_MISSIONS.filter((m) => m.status === status);
+  return allMissions().filter((m) => m.status === status);
 }
 
 export function getMission(agentId: string): EarningMission | undefined {
-  return EARNING_MISSIONS.find((m) => m.agentId === agentId);
+  return allMissions().find((m) => m.agentId === agentId);
 }
 
 export function autoEarningMissions(): EarningMission[] {
-  return EARNING_MISSIONS.filter((m) => m.status === "active_runtime" || m.status === "dispatch_ready");
+  return allMissions().filter((m) => m.status === "active_runtime" || m.status === "dispatch_ready");
+}
+
+export function listDynamicMissions(): EarningMission[] {
+  return [...dynamicMissions];
 }
